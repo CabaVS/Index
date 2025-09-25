@@ -1,5 +1,12 @@
 <Solution>
+  <Folder Name="/Aspire/">
+    <Project Path="aspire\CabaVS.Aspire\CabaVS.Aspire.csproj" Type="Classic C#" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="Directory.Packages.props" />
+    <File Path=".editorconfig" />
   </Folder>
 </Solution>
