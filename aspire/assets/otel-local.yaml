@@ -17,38 +17,18 @@ receivers:
           metrics_path: /metrics
 
 processors:
-  # Keep memory in check (defaults are conservative)
-  memory_limiter:
-    check_interval: 5s
-    limit_percentage: 75
-    spike_limit_percentage: 30
-
-  batch:
-    send_batch_size: 8192
-    timeout: 5s
+  batch: {}
 
 exporters:
-  # gRPC exporter to Aspire dashboard (port 5001) with API key, accept dev cert
   otlp:
-    endpoint: host.docker.internal:5001   # gRPC (no scheme)
+    endpoint: host.docker.internal:5001
     headers:
       x-otlp-api-key: ${env:ASPIRE_OTLP_API_KEY}
     tls:
-      # keep TLS ON (required by 5001), but don't validate the dev cert
-      insecure: false
-      insecure_skip_verify: true
+      insecure_skip_verify: true  # dev-only
 
 service:
   pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [otlp]
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [otlp]
-    metrics:
-      receivers: [prometheus]
-      processors: [memory_limiter, batch]
-      exporters: [otlp]
+    traces:  { receivers: [otlp], processors: [batch], exporters: [otlp] }
+    logs:    { receivers: [otlp], processors: [batch], exporters: [otlp] }
+    metrics: { receivers: [prometheus], processors: [batch], exporters: [otlp] }
