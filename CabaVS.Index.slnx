@@ -2,6 +2,9 @@
   <Folder Name="/Aspire/">
     <Project Path="aspire\CabaVS.Aspire\CabaVS.Aspire.csproj" Type="Classic C#" />
   </Folder>
+  <Folder Name="/Aspire/Assets/">
+    <File Path="aspire\assets\otel-local.yaml" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
