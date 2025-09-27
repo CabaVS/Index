@@ -10,11 +10,80 @@ receivers:
   prometheus:
     config:
       scrape_configs:
-        - job_name: keycloak
+        - job_name: keycloak-metrics-scrape
           scrape_interval: 15s
           static_configs:
             - targets: ["cvs-idx-keycloak-ca:9000"]
           metrics_path: /metrics
+          
+  filelog:
+    include: [ "/var/log/keycloak/keycloak.log" ]
+    start_at: end
+    operators:
+      # 1) Parse the JSON line into body.*
+      - id: parse_json
+        type: json_parser
+        parse_from: body
+        parse_to: body
+        on_error: drop
+      
+      # 2) Parse event time from body.timestamp
+      - id: time_from_body
+        type: time_parser
+        parse_from: body.timestamp
+        layout_type: gotime
+        layout: '2006-01-02T15:04:05.999999999Z07:00'
+        on_error: send
+      
+      # 3) Map textual level to severity
+      - id: severity_from_level
+        type: severity_parser
+        parse_from: body.level
+        mapping:
+          debug: [ DEBUG ]
+          info: [ INFO ]
+          warn: [ WARN, WARNING ]
+          error: [ ERROR ]
+          fatal: [ FATAL ]
+        on_error: send
+      
+      # 4) Promote useful fields to attributes (do this BEFORE changing body)
+      - id: attr_logger
+        type: copy
+        from: body.loggerName
+        to: attributes["logger.name"]
+        on_error: send
+
+      - id: attr_thread
+        type: copy
+        from: body.threadName
+        to: attributes["thread.name"]
+        on_error: send
+
+      - id: attr_pid
+        type: copy
+        from: body.processId
+        to: attributes["process.pid"]
+        on_error: send
+
+      - id: attr_procname
+        type: copy
+        from: body.processName
+        to: attributes["process.command_line"]
+        on_error: send
+      
+      # 5) Finally, make the log message the body string most exporters expect
+      - id: msg_to_body
+        type: move
+        from: body.message
+        to: body
+        on_error: send
+          
+      # 6) Tag service name (resource attribute)
+      - id: set_service_name
+        type: add
+        field: resource["service.name"]
+        value: cvs-idx-keycloak-ca
 
 processors:
   batch: {}
@@ -30,5 +99,5 @@ exporters:
 service:
   pipelines:
     traces:  { receivers: [otlp], processors: [batch], exporters: [otlp] }
-    logs:    { receivers: [otlp], processors: [batch], exporters: [otlp] }
+    logs:    { receivers: [filelog], processors: [batch], exporters: [otlp] }
     metrics: { receivers: [prometheus], processors: [batch], exporters: [otlp] }

@@ -1,7 +1,8 @@
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
 IResourceBuilder<ParameterResource> sqlPassword = builder.AddParameter("SqlPassword", secret: true);
-IResourceBuilder<ParameterResource> otelCollectorConfigFullPath = builder.AddParameter("OtelCollectorConfigFullPath", secret: true);
+IResourceBuilder<ParameterResource> keycloakOtelCollectorConfigFullPath = builder.AddParameter("KeycloakOtelCollectorConfigFullPath", secret: true);
+IResourceBuilder<ParameterResource> keycloakLogOutputFullPath = builder.AddParameter("KeycloakLogOutputFullPath", secret: true);
 IResourceBuilder<ParameterResource> keycloakUsername = builder.AddParameter("KeycloakUsername");
 IResourceBuilder<ParameterResource> keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true);
 
@@ -12,12 +13,18 @@ IResourceBuilder<SqlServerServerResource> sql = builder
 
 IResourceBuilder<SqlServerDatabaseResource> keycloakDb = sql.AddDatabase("cvs-idx-keycloak-sqldb");
 
-IResourceBuilder<ContainerResource> otelCollector = builder
-    .AddContainer("cvs-idx-otel-collector", image: "otel/opentelemetry-collector:0.104.0")
+IResourceBuilder<ContainerResource> keycloakOtelCollector = builder
+    .AddContainer("cvs-idx-keycloak-otel-collector", image: "otel/opentelemetry-collector-contrib:0.136.0")
     .WithBindMount(
-        await otelCollectorConfigFullPath.Resource.GetValueAsync(CancellationToken.None)
-        ?? throw new InvalidOperationException("OTEL Collector Config Full Path not found."), 
-        "/etc/otelcol/config.yaml")
+        await keycloakOtelCollectorConfigFullPath.Resource.GetValueAsync(CancellationToken.None)
+        ?? throw new InvalidOperationException("Keycloak OTEL Collector Config Full Path not found."), 
+        "/etc/otelcol/config.yaml",
+        isReadOnly: true)
+    .WithBindMount(
+        await keycloakLogOutputFullPath.Resource.GetValueAsync(CancellationToken.None)
+        ?? throw new InvalidOperationException("Keycloak Log Output Full Path not found."),
+        "/var/log/keycloak/keycloak.log",
+        isReadOnly: true)
     .WithEnvironment("ASPIRE_OTLP_API_KEY", builder.Configuration["AppHost:OtlpApiKey"])
     .WithArgs("--config", "/etc/otelcol/config.yaml")
     .WithEndpoint(name: "otlp-grpc", port: 4317, targetPort: 4317)
@@ -26,6 +33,11 @@ IResourceBuilder<ContainerResource> otelCollector = builder
 _ = builder
     .AddKeycloak("cvs-idx-keycloak-ca", port: 5010, keycloakUsername, keycloakPassword)
     .WithDataVolume()
+    .WithBindMount(
+        await keycloakLogOutputFullPath.Resource.GetValueAsync(CancellationToken.None)
+        ?? throw new InvalidOperationException("Keycloak Log Output Full Path not found."),
+        "/var/log/keycloak/keycloak.log",
+        isReadOnly: false)
     .WithEnvironment("KC_DB", "mssql")
     .WithEnvironment("KC_DB_USERNAME", "sa")
     .WithEnvironment("KC_DB_PASSWORD", sql.Resource.PasswordParameter)
@@ -41,12 +53,16 @@ _ = builder
     .WithEnvironment("KC_HOSTNAME_STRICT", "false")
     .WithEnvironment("KC_TRACING_ENABLED", "true")
     .WithEnvironment("KC_TRACING_PROTOCOL", "grpc")
-    .WithEnvironment("KC_TRACING_ENDPOINT", () => $"http://{otelCollector.Resource.Name}:4317")
+    .WithEnvironment("KC_TRACING_ENDPOINT", () => $"http://{keycloakOtelCollector.Resource.Name}:4317")
     .WithEnvironment("KC_TRACING_SERVICE_NAME", "cvs-idx-keycloak-ca")
     .WithEnvironment("KC_TRACING_SAMPLER_RATIO", "1.0")
     .WithEnvironment("KC_METRICS_ENABLED", "true")
+    .WithEnvironment("KC_LOG", "file")
+    .WithEnvironment("KC_LOG_FILE", "/var/log/keycloak/keycloak.log")
+    .WithEnvironment("KC_LOG_FILE_OUTPUT", "json")
+    .WithEnvironment("KC_LOG_LEVEL", "info")
     .WithArgs("start-dev --auto-build")
     .WaitFor(keycloakDb)
-    .WaitFor(otelCollector);
+    .WaitFor(keycloakOtelCollector);
 
 await builder.Build().RunAsync();

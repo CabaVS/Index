@@ -17,3 +17,6 @@ out/
 *.suo
 *.userosscache
 *.sln.docstates
+
+# Local logs output
+keycloak.log
