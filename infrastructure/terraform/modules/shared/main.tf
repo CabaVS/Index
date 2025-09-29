@@ -1,3 +1,30 @@
+resource "azurerm_log_analytics_workspace" "shared" {
+  name                = var.law_name
+  resource_group_name = var.rg_name
+  location            = var.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  daily_quota_gb      = 2
+}
+
+resource "azurerm_application_insights" "shared" {
+  name                 = var.app_insights_name
+  resource_group_name  = var.rg_name
+  location             = var.location
+  application_type     = "web"
+  workspace_id         = azurerm_log_analytics_workspace.shared.id
+  sampling_percentage  = 100
+  retention_in_days    = 30
+  daily_data_cap_in_gb = 2
+}
+
+resource "azurerm_container_app_environment" "shared" {
+  name                       = var.cae_name
+  resource_group_name        = var.rg_name
+  location                   = var.location
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.shared.id
+}
+
 resource "azurerm_mssql_server" "shared" {
   name                          = var.sql_server_name
   resource_group_name           = var.rg_name

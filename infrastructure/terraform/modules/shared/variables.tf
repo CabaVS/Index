@@ -6,6 +6,18 @@ variable "location" {
   type = string
 }
 
+variable "law_name" {
+  type = string
+}
+
+variable "app_insights_name" {
+  type = string
+}
+
+variable "cae_name" {
+  type = string
+}
+
 variable "sql_server_name" {
   type = string
 }
