@@ -16,6 +16,12 @@
     <File Path="infrastructure\terraform\variables.tf" />
     <File Path="infrastructure\terraform\terraform.tfvars" />
   </Folder>
+  <Folder Name="/Infrastructure/Terraform/Projects/" />
+  <Folder Name="/Infrastructure/Terraform/Projects/Identity Server/">
+    <File Path="infrastructure\terraform\modules\proj_identityserver\main.tf" />
+    <File Path="infrastructure\terraform\modules\proj_identityserver\outputs.tf" />
+    <File Path="infrastructure\terraform\modules\proj_identityserver\variables.tf" />
+  </Folder>
   <Folder Name="/Infrastructure/Terraform/Shared/">
     <File Path="infrastructure\terraform\modules\shared\main.tf" />
     <File Path="infrastructure\terraform\modules\shared\outputs.tf" />
