@@ -5,6 +5,7 @@ on:
     branches: [ "master" ]
     paths:
       - '.github/workflows/infrastructure.yml'
+      - 'infrastructure/assets/**'
       - 'infrastructure/terraform/**'
   workflow_dispatch:
 
