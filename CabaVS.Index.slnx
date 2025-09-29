@@ -9,6 +9,9 @@
     <File Path=".github\workflows\infrastructure.yml" />
   </Folder>
   <Folder Name="/Infrastructure/" />
+  <Folder Name="/Infrastructure/Assets/">
+    <File Path="infrastructure\assets\acr_purge.yml" />
+  </Folder>
   <Folder Name="/Infrastructure/Scripts/">
     <File Path="infrastructure\scripts\pre_deployment.ps1" />
     <File Path="infrastructure\scripts\pre_deployment_entraid.ps1" />

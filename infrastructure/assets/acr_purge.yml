@@ -1,0 +1,4 @@
+version: v1.1.0
+steps:
+  - cmd: mcr.microsoft.com/acr/acr-cli:0.14 purge --filter '*:.*' --keep 10 --ago 0d --untagged
+    timeout: 3600

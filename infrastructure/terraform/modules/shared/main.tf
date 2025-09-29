@@ -33,6 +33,23 @@ resource "azurerm_container_registry" "shared" {
   admin_enabled       = false
 }
 
+resource "azurerm_container_registry_task" "purge_keep10" {
+  name                  = "purge-keep10"
+  container_registry_id = azurerm_container_registry.shared.id
+
+  platform { os = "Linux" }
+
+  encoded_step {
+    task_content = file("${path.module}/../../../assets/acr_purge.yml")
+  }
+
+  timer_trigger {
+    name     = "nightly"
+    schedule = "0 0 * * *"
+    enabled  = true
+  }
+}
+
 resource "azurerm_mssql_server" "shared" {
   name                          = var.sql_server_name
   resource_group_name           = var.rg_name
