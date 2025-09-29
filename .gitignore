@@ -20,3 +20,12 @@ out/
 
 # Local logs output
 keycloak.log
+
+# Terraform-specific
+**/.terraform/*
+backend.hcl
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars

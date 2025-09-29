@@ -5,6 +5,22 @@
   <Folder Name="/Aspire/Assets/">
     <File Path="aspire\assets\otel-local.yaml" />
   </Folder>
+  <Folder Name="/Infrastructure/" />
+  <Folder Name="/Infrastructure/Scripts/">
+    <File Path="infrastructure\scripts\pre_deployment.ps1" />
+  </Folder>
+  <Folder Name="/Infrastructure/Terraform/">
+    <File Path="infrastructure\terraform\backend.hcl" />
+    <File Path="infrastructure\terraform\main.tf" />
+    <File Path="infrastructure\terraform\providers.tf" />
+    <File Path="infrastructure\terraform\variables.tf" />
+    <File Path="infrastructure\terraform\terraform.tfvars" />
+  </Folder>
+  <Folder Name="/Infrastructure/Terraform/Shared/">
+    <File Path="infrastructure\terraform\modules\shared\main.tf" />
+    <File Path="infrastructure\terraform\modules\shared\outputs.tf" />
+    <File Path="infrastructure\terraform\modules\shared\variables.tf" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
