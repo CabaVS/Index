@@ -25,6 +25,14 @@ resource "azurerm_container_app_environment" "shared" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.shared.id
 }
 
+resource "azurerm_container_registry" "shared" {
+  name                = var.acr_name
+  resource_group_name = var.rg_name
+  location            = var.location
+  sku                 = "Basic"
+  admin_enabled       = false
+}
+
 resource "azurerm_mssql_server" "shared" {
   name                          = var.sql_server_name
   resource_group_name           = var.rg_name

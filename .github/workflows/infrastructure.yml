@@ -1,0 +1,135 @@
+name: Deployment of the Infrastructure
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - '.github/workflows/infrastructure.yml'
+      - 'infrastructure/terraform/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: true
+  TF_VERSION: "1.12.2"
+
+jobs:
+  terraform-plan:
+    environment: production
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Create backend.hcl from secret
+        run: |
+          echo "${{ secrets.TF_BACKEND_CONFIG }}" | base64 --decode > backend.hcl
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Init
+        run: terraform init -backend-config="backend.hcl" -reconfigure
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: infrastructure/terraform
+
+      - name: Create terraform.tfvars from secret
+        run: |
+            echo "${{ secrets.TF_VARS_CONFIG }}" | base64 --decode > terraform.tfvars
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -no-color -var-file="terraform.tfvars" -out=tfplan
+        working-directory: infrastructure/terraform
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infrastructure/terraform/tfplan
+
+      - name: Show Terraform Plan as JSON
+        run: terraform show -json tfplan > tfplan.json
+        working-directory: infrastructure/terraform
+
+      - name: Upload Plan Artifact (JSON)
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-json
+          path: infrastructure/terraform/tfplan.json
+  
+  terraform-apply:
+    name: Terraform Apply
+    needs: [terraform-plan]
+    environment: production
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: infrastructure/terraform
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Create backend.hcl from secret
+        run: |
+          echo "${{ secrets.TF_BACKEND_CONFIG }}" | base64 --decode > backend.hcl
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Init
+        run: terraform init -backend-config="backend.hcl" -reconfigure
+        working-directory: infrastructure/terraform
+
+      - name: Create terraform.tfvars from secret
+        run: |
+          echo "${{ secrets.TF_VARS_CONFIG }}" | base64 --decode > terraform.tfvars
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Apply
+        run: terraform apply -input=false -no-color tfplan
+        working-directory: infrastructure/terraform

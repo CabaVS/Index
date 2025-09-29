@@ -5,9 +5,14 @@
   <Folder Name="/Aspire/Assets/">
     <File Path="aspire\assets\otel-local.yaml" />
   </Folder>
+  <Folder Name="/GitHub Workflows/">
+    <File Path=".github\workflows\infrastructure.yml" />
+  </Folder>
   <Folder Name="/Infrastructure/" />
   <Folder Name="/Infrastructure/Scripts/">
     <File Path="infrastructure\scripts\pre_deployment.ps1" />
+    <File Path="infrastructure\scripts\pre_deployment_entraid.ps1" />
+    <File Path="infrastructure\scripts\tool_tfvarstobase64.ps1" />
   </Folder>
   <Folder Name="/Infrastructure/Terraform/">
     <File Path="infrastructure\terraform\backend.hcl" />
