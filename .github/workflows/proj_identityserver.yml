@@ -1,0 +1,87 @@
+name: Deployment of the Project for Identity Server
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - '.github/workflows/proj_identityserver.yml'
+      - 'proj.identityserver.keycloak.Dockerfile'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE_NAME: "keycloak"
+  DOCKERFILE_PATH: "./proj.identityserver.keycloak.Dockerfile"
+
+jobs:
+  push-image:
+    environment: production
+    name: Push image to ACR
+    runs-on: ubuntu-latest
+    
+    outputs:
+      sha_tag: ${{ steps.vars.outputs.sha_tag }}
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tags
+        id: vars
+        run: |
+          echo "sha_tag=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: |
+          docker build -f ${{ env.DOCKERFILE_PATH }} \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:latest \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }} .
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Docker Login to ACR
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Push image to ACR
+        run: |
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:latest
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }}
+  
+  deploy-to-aca:
+    environment: production
+    name: Deploy to ACA
+    needs: push-image
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          registryUrl: ${{ secrets.ACR_NAME }}.azurecr.io
+          containerAppName: ${{ secrets.ACA_NAME_FOR_KEYCLOAK }}
+          resourceGroup: ${{ secrets.RG_NAME }}
+          imageToDeploy: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.sha_tag }}

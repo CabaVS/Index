@@ -5,8 +5,12 @@
   <Folder Name="/Aspire/Assets/">
     <File Path="aspire\assets\otel-local.yaml" />
   </Folder>
+  <Folder Name="/Docker/">
+    <File Path="proj.identityserver.keycloak.Dockerfile" />
+  </Folder>
   <Folder Name="/GitHub Workflows/">
     <File Path=".github\workflows\infrastructure.yml" />
+    <File Path=".github\workflows\proj_identityserver.yml" />
   </Folder>
   <Folder Name="/Infrastructure/" />
   <Folder Name="/Infrastructure/Assets/">
