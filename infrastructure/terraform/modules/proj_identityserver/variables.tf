@@ -6,6 +6,11 @@ variable "location" {
   type = string
 }
 
+variable "appi_connection_string" {
+  type      = string
+  sensitive = true
+}
+
 variable "acr_id" {
   type = string
 }

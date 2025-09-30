@@ -34,6 +34,11 @@ resource "azurerm_container_app" "ca_keycloak" {
     identity = azurerm_user_assigned_identity.uami_ca_keycloak.id
   }
 
+  secret {
+    name  = "ai-connstr"
+    value = var.appi_connection_string
+  }
+
   template {
     min_replicas = 0
     max_replicas = 1
@@ -43,6 +48,43 @@ resource "azurerm_container_app" "ca_keycloak" {
       image  = "mcr.microsoft.com/dotnet/samples:aspnetapp"
       cpu    = 0.25
       memory = "0.5Gi"
+    }
+
+    container {
+      name   = "otel-collector"
+      image  = "otel/opentelemetry-collector-contrib:0.136.0"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      env {
+        name        = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        secret_name = "ai-connstr"
+      }
+
+      env {
+        name  = "OTEL_CONFIG"
+        value = <<-EOT
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
+          processors:
+            batch: {}
+          exporters:
+            azuremonitor: {}
+          service:
+            pipelines:
+              traces:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [azuremonitor]
+        EOT
+      }
+
+      args = ["--config=env:OTEL_CONFIG"]
     }
   }
 }

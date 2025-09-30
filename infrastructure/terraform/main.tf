@@ -27,13 +27,14 @@ module "shared" {
 }
 
 module "proj_identityserver" {
-  source               = "./modules/proj_identityserver"
-  rg_name              = var.rg_name
-  location             = local.location
-  acr_id               = module.shared.acr_id
-  acr_login_server     = module.shared.acr_login_server
-  cae_id               = module.shared.cae_id
-  ca_name_for_keycloak = local.ca_name_for_keycloak
-  sql_server_id        = module.shared.sql_server_id
-  sql_database_name    = local.sql_database_name_for_keycloak
+  source                 = "./modules/proj_identityserver"
+  rg_name                = var.rg_name
+  location               = local.location
+  appi_connection_string = module.shared.appi_connection_string
+  acr_id                 = module.shared.acr_id
+  acr_login_server       = module.shared.acr_login_server
+  cae_id                 = module.shared.cae_id
+  ca_name_for_keycloak   = local.ca_name_for_keycloak
+  sql_server_id          = module.shared.sql_server_id
+  sql_database_name      = local.sql_database_name_for_keycloak
 }
