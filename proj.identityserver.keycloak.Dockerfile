@@ -2,6 +2,7 @@
 FROM quay.io/keycloak/keycloak:26.3.5 AS builder
 
 ENV KC_DB=mssql
+ENV KC_TRACING_ENABLED=true
 
 RUN /opt/keycloak/bin/kc.sh build
 
