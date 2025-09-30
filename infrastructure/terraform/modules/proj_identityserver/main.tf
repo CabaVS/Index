@@ -71,6 +71,14 @@ resource "azurerm_container_app" "ca_keycloak" {
                   endpoint: 0.0.0.0:4317
                 http:
                   endpoint: 0.0.0.0:4318
+            prometheus:
+              config:
+                scrape_configs:
+                  - job_name: keycloak-metrics
+                    scrape_interval: 15s
+                    static_configs:
+                      - targets: ["localhost:9000"]
+                    metrics_path: /metrics
           processors:
             batch: {}
           exporters:
@@ -79,6 +87,10 @@ resource "azurerm_container_app" "ca_keycloak" {
             pipelines:
               traces:
                 receivers: [otlp]
+                processors: [batch]
+                exporters: [azuremonitor]
+              metrics:
+                receivers: [prometheus]
                 processors: [batch]
                 exporters: [azuremonitor]
         EOT
