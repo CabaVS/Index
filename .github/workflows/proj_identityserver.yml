@@ -78,10 +78,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          registryUrl: ${{ secrets.ACR_NAME }}.azurecr.io
-          containerAppName: ${{ secrets.ACA_NAME_FOR_KEYCLOAK }}
-          resourceGroup: ${{ secrets.RG_NAME }}
-          imageToDeploy: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.sha_tag }}
+      # It's impossible to update a specific container with azure/container-apps-deploy-action@v2
+      - name: Update ACA image (keycloak container)
+        run: |
+          az containerapp update \
+            --resource-group "${{ secrets.RG_NAME }}" \
+            --name "${{ secrets.ACA_NAME_FOR_KEYCLOAK }}" \
+            --image "${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.sha_tag }}" \
+            --container-name keycloak \
+            --only-show-errors
