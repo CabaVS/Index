@@ -20,6 +20,7 @@
     <File Path="infrastructure\scripts\pre_deployment.ps1" />
     <File Path="infrastructure\scripts\pre_deployment_entraid.ps1" />
     <File Path="infrastructure\scripts\tool_tfvarstobase64.ps1" />
+    <File Path="infrastructure\scripts\post_deployment_keycloak.ps1" />
   </Folder>
   <Folder Name="/Infrastructure/Terraform/">
     <File Path="infrastructure\terraform\backend.hcl" />
