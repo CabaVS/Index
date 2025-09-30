@@ -43,11 +43,21 @@ resource "azurerm_container_app" "ca_keycloak" {
     min_replicas = 0
     max_replicas = 1
 
+    volume {
+      name         = "kc-logs"
+      storage_type = "EmptyDir"
+    }
+
     container {
       name   = "keycloak"
       image  = "mcr.microsoft.com/dotnet/samples:aspnetapp"
       cpu    = 0.25
       memory = "0.5Gi"
+
+      volume_mounts {
+        name = "kc-logs"
+        path = "/var/log/keycloak"
+      }
     }
 
     container {
@@ -55,6 +65,11 @@ resource "azurerm_container_app" "ca_keycloak" {
       image  = "otel/opentelemetry-collector-contrib:0.136.0"
       cpu    = 0.25
       memory = "0.5Gi"
+
+      volume_mounts {
+        name = "kc-logs"
+        path = "/var/log/keycloak"
+      }
 
       env {
         name        = "APPLICATIONINSIGHTS_CONNECTION_STRING"
@@ -79,6 +94,50 @@ resource "azurerm_container_app" "ca_keycloak" {
                     static_configs:
                       - targets: ["localhost:9000"]
                     metrics_path: /metrics
+            filelog:
+              include: [ "/var/log/keycloak/keycloak.log" ]
+              start_at: end
+              operators:
+                - id: parse_json
+                  type: json_parser
+                  parse_from: body
+                  parse_to: body
+                  on_error: drop
+                - id: time_from_body
+                  type: time_parser
+                  parse_from: body.timestamp
+                  layout_type: gotime
+                  layout: '2006-01-02T15:04:05.999999999Z07:00'
+                  on_error: send
+                - id: severity_from_level
+                  type: severity_parser
+                  parse_from: body.level
+                  mapping:
+                    debug: [DEBUG]
+                    info:  [INFO]
+                    warn:  [WARN, WARNING]
+                    error: [ERROR]
+                    fatal: [FATAL]
+                - id: attr_logger
+                  type: copy
+                  from: body.loggerName
+                  to: attributes["logger.name"]
+                - id: attr_thread
+                  type: copy
+                  from: body.threadName
+                  to: attributes["thread.name"]
+                - id: attr_pid
+                  type: copy
+                  from: body.processId
+                  to: attributes["process.pid"]
+                - id: attr_procname
+                  type: copy
+                  from: body.processName
+                  to: attributes["process.command_line"]
+                - id: msg_to_body
+                  type: move
+                  from: body.message
+                  to: body
           processors:
             batch: {}
           exporters:
@@ -91,6 +150,10 @@ resource "azurerm_container_app" "ca_keycloak" {
                 exporters: [azuremonitor]
               metrics:
                 receivers: [prometheus]
+                processors: [batch]
+                exporters: [azuremonitor]
+              logs:
+                receivers: [filelog]
                 processors: [batch]
                 exporters: [azuremonitor]
         EOT
