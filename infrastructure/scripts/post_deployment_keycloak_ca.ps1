@@ -129,7 +129,13 @@ $envPairs = @(
     "KC_HTTP_PORT=8080",
     "KC_PROXY=edge",
     "KC_BOOTSTRAP_ADMIN_USERNAME=$KeycloakConsoleAdmin",
-    "KC_BOOTSTRAP_ADMIN_PASSWORD=$kcConsoleAdminPwdPlain"
+    "KC_BOOTSTRAP_ADMIN_PASSWORD=$kcConsoleAdminPwdPlain",
+    "KC_TRACING_ENABLED=true",
+    "KC_TRACING_PROTOCOL=grpc",
+    "KC_TRACING_ENDPOINT=http://localhost:4317",
+    "KC_TRACING_SERVICE_NAME=$caName",
+    "KC_TRACING_SAMPLER_RATIO=1.0",
+    "KC_METRICS_ENABLED=true"
 )
 
 if ($kcHostname) {
@@ -152,6 +158,7 @@ $updateArgs = @(
     'containerapp','update',
     '-g', $RgName,
     '-n', $caName,
+    '--container-name', 'keycloak',
     '--set-env-vars'
 ) + $envPairsQuoted + @('--only-show-errors')
 
