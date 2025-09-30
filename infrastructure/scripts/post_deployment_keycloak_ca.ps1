@@ -135,7 +135,11 @@ $envPairs = @(
     "KC_TRACING_ENDPOINT=http://localhost:4317",
     "KC_TRACING_SERVICE_NAME=$caName",
     "KC_TRACING_SAMPLER_RATIO=1.0",
-    "KC_METRICS_ENABLED=true"
+    "KC_METRICS_ENABLED=true",
+    "KC_LOG=file",
+    "KC_LOG_FILE=/var/log/keycloak/keycloak.log",
+    "KC_LOG_FILE_OUTPUT=json",
+    "KC_LOG_LEVEL=info"
 )
 
 if ($kcHostname) {
