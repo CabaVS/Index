@@ -40,8 +40,8 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -f ${{ env.DOCKERFILE_PATH }} \
-            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:latest \
-            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }} .
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:latest \
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }} .
 
       - name: Azure Login with OIDC
         uses: azure/login@v2
@@ -51,12 +51,12 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Docker Login to ACR
-        run: az acr login --name ${{ secrets.ACR_NAME }}
+        run: az acr login --name ${{ secrets.AZURE_ACR_NAME }}
 
       - name: Push image to ACR
         run: |
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:latest
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }}
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:latest
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }}
   
   deploy-to-aca:
     environment: production
@@ -82,8 +82,8 @@ jobs:
       - name: Update ACA image (keycloak container)
         run: |
           az containerapp update \
-            --resource-group "${{ secrets.RG_NAME }}" \
-            --name "${{ secrets.ACA_NAME_FOR_KEYCLOAK }}" \
-            --image "${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.sha_tag }}" \
+            --resource-group "${{ secrets.AZURE_RG_NAME }}" \
+            --name "${{ secrets.KCLK_AZURE_ACA_NAME }}" \
+            --image "${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.sha_tag }}" \
             --container-name keycloak \
             --only-show-errors
