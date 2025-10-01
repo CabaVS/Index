@@ -7,14 +7,14 @@ IResourceBuilder<ParameterResource> keycloakUsername = builder.AddParameter("Key
 IResourceBuilder<ParameterResource> keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true);
 
 IResourceBuilder<SqlServerServerResource> sql = builder
-    .AddSqlServer("cvs-idx-sql", sqlPassword, port: 1433)
+    .AddSqlServer("sql-cvs-idx-local", sqlPassword, port: 1433)
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);
 
-IResourceBuilder<SqlServerDatabaseResource> keycloakDb = sql.AddDatabase("cvs-idx-keycloak-sqldb");
+IResourceBuilder<SqlServerDatabaseResource> keycloakDb = sql.AddDatabase("sqldb-cvs-idx-keycloak");
 
 IResourceBuilder<ContainerResource> keycloakOtelCollector = builder
-    .AddContainer("cvs-idx-keycloak-otel-collector", image: "otel/opentelemetry-collector-contrib:0.136.0")
+    .AddContainer("ca-cvs-idx-keycloak-otel-collector-local", image: "otel/opentelemetry-collector-contrib:0.136.0")
     .WithBindMount(
         await keycloakOtelCollectorConfigFullPath.Resource.GetValueAsync(CancellationToken.None)
         ?? throw new InvalidOperationException("Keycloak OTEL Collector Config Full Path not found."), 
@@ -30,8 +30,8 @@ IResourceBuilder<ContainerResource> keycloakOtelCollector = builder
     .WithEndpoint(name: "otlp-grpc", port: 4317, targetPort: 4317)
     .WithHttpEndpoint(name: "otlp-http", port: 4318, targetPort: 4318);
 
-_ = builder
-    .AddKeycloak("cvs-idx-keycloak-ca", port: 5010, keycloakUsername, keycloakPassword)
+IResourceBuilder<KeycloakResource> keycloak = builder
+    .AddKeycloak("ca-cvs-idx-keycloak-local", port: 5010, keycloakUsername, keycloakPassword)
     .WithDataVolume()
     .WithBindMount(
         await keycloakLogOutputFullPath.Resource.GetValueAsync(CancellationToken.None)
@@ -54,7 +54,7 @@ _ = builder
     .WithEnvironment("KC_TRACING_ENABLED", "true")
     .WithEnvironment("KC_TRACING_PROTOCOL", "grpc")
     .WithEnvironment("KC_TRACING_ENDPOINT", () => $"http://{keycloakOtelCollector.Resource.Name}:4317")
-    .WithEnvironment("KC_TRACING_SERVICE_NAME", "cvs-idx-keycloak-ca")
+    .WithEnvironment("KC_TRACING_SERVICE_NAME", "ca-cvs-idx-keycloak-local")
     .WithEnvironment("KC_TRACING_SAMPLER_RATIO", "1.0")
     .WithEnvironment("KC_METRICS_ENABLED", "true")
     .WithEnvironment("KC_LOG", "file")
@@ -64,5 +64,9 @@ _ = builder
     .WithArgs("start-dev --auto-build")
     .WaitFor(keycloakDb)
     .WaitFor(keycloakOtelCollector);
+
+builder.AddProject<Projects.CabaVS_Workerly_Web>("ca-cvs-idx-workerly-local")
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+    .WithReference(keycloak).WaitFor(keycloak);
 
 await builder.Build().RunAsync();

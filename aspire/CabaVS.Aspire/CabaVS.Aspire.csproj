@@ -13,4 +13,8 @@
         <PackageReference Include="Aspire.Hosting.SqlServer" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\proj-workerly\src\CabaVS.Workerly.Web\CabaVS.Workerly.Web.csproj" />
+    </ItemGroup>
+
 </Project>

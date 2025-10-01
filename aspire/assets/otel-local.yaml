@@ -13,7 +13,7 @@ receivers:
         - job_name: keycloak-metrics-scrape
           scrape_interval: 15s
           static_configs:
-            - targets: ["cvs-idx-keycloak-ca:9000"]
+            - targets: ["ca-cvs-idx-keycloak-local:9000"]
           metrics_path: /metrics
           
   filelog:
@@ -83,7 +83,7 @@ receivers:
       - id: set_service_name
         type: add
         field: resource["service.name"]
-        value: cvs-idx-keycloak-ca
+        value: ca-cvs-idx-keycloak-local
 
 processors:
   batch: {}

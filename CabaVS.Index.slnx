@@ -41,6 +41,11 @@
     <File Path="infrastructure\terraform\modules\shared\outputs.tf" />
     <File Path="infrastructure\terraform\modules\shared\variables.tf" />
   </Folder>
+  <Folder Name="/Projects/" />
+  <Folder Name="/Projects/Workerly/">
+    <Project Path="proj-workerly\src\CabaVS.Workerly.Shared\CabaVS.Workerly.Shared.csproj" Type="Classic C#" />
+    <Project Path="proj-workerly\src\CabaVS.Workerly.Web\CabaVS.Workerly.Web.csproj" Type="Classic C#" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
