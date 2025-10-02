@@ -1,6 +1,7 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
 using CabaVS.Workerly.Web.Configuration;
 using CabaVS.Workerly.Web.Endpoints;
+using CabaVS.Workerly.Web.Services;
 using Microsoft.Extensions.Options;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.VisualStudio.Services.Common;
@@ -80,6 +81,10 @@ builder.Services.AddSingleton(sp =>
     WorkItemTrackingHttpClient? client = connection.GetClient<WorkItemTrackingHttpClient>();
     return client ?? throw new InvalidOperationException("Failed to create WorkItemTrackingHttpClient.");
 });
+
+builder.Services.AddScoped<UserService>();
+
+builder.Services.AddHttpContextAccessor();
 
 WebApplication app = builder.Build();
 
