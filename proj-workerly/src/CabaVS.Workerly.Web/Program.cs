@@ -2,6 +2,9 @@ using Azure.Monitor.OpenTelemetry.Exporter;
 using CabaVS.Workerly.Web.Configuration;
 using CabaVS.Workerly.Web.Endpoints;
 using CabaVS.Workerly.Web.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.VisualStudio.Services.Common;
@@ -26,6 +29,46 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 builder.Host.UseSerilog();
+
+// Auth
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
+    {
+        options.Authority = builder.Configuration["Authentication:Authority"];
+        options.ClientId = builder.Configuration["Authentication:ClientId"];
+        options.ClientSecret = builder.Configuration["Authentication:ClientSecret"];
+        options.ResponseType = "code";
+        options.UsePkce = true;
+        options.SaveTokens = true;
+        options.GetClaimsFromUserInfoEndpoint = true;
+
+        options.RequireHttpsMetadata = builder.Configuration.GetValue<bool>("Authentication:RequireHttpsMetadata");
+        
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+    });
+builder.Services .AddAuthorization(
+    options => options.FallbackPolicy = new AuthorizationPolicyBuilder() 
+        .RequireAuthenticatedUser()
+        .Build());
+
+// Razor Pages
+builder.Services
+    .AddRazorPages(options =>
+    {
+        options.Conventions.AllowAnonymousToPage("/Index");
+        options.Conventions.AllowAnonymousToPage("/Error");
+        options.Conventions.AllowAnonymousToPage("/Auth/Login");
+    })
+    .AddRazorPagesOptions(_ => { });
 
 // Open Telemetry
 builder.Services.AddOpenTelemetry()
@@ -87,6 +130,22 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddHttpContextAccessor();
 
 WebApplication app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapRazorPages();
 
 app.MapReportingInfoEndpoint();
 app.MapRemainingWorkEndpoint();
