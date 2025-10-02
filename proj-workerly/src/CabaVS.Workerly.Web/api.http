@@ -1,1 +1,5 @@
 ﻿GET https://localhost:5020/api/work-items/47096/reporting-info
+
+###
+
+GET https://localhost:5020/api/work-items/50697/remaining-work

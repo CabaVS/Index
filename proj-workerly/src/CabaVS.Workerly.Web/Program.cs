@@ -84,5 +84,6 @@ builder.Services.AddSingleton(sp =>
 WebApplication app = builder.Build();
 
 app.MapReportingInfoEndpoint();
+app.MapRemainingWorkEndpoint();
 
 await app.RunAsync();
