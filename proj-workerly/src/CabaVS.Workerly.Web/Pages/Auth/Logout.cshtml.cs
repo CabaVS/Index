@@ -7,7 +7,7 @@ namespace CabaVS.Workerly.Web.Pages.Auth;
 
 internal sealed class Logout : PageModel
 {
-    public async Task OnGet()
+    public async Task OnPost()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme,
