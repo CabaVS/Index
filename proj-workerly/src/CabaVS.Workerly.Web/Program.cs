@@ -1,6 +1,7 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
 using CabaVS.Workerly.Web.Configuration;
 using CabaVS.Workerly.Web.Endpoints;
+using CabaVS.Workerly.Web.Extensions;
 using CabaVS.Workerly.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -18,17 +19,21 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
+// Logging
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+builder.Host.UseSerilog();
+
 // Configuration
 builder.Services.Configure<AzureDevOpsOptions>(
     builder.Configuration.GetSection("AzureDevOps"));
 builder.Services.Configure<TeamsDefinitionOptions>(
     builder.Configuration.GetSection("TeamsDefinition"));
 
-// Logging
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .CreateLogger();
-builder.Host.UseSerilog();
+// Azure Cosmos DB
+builder.TryConfigureCosmosDbForLocalDevelopment();
+builder.Services.AddCosmos(builder.Configuration);
 
 // Auth
 builder.Services

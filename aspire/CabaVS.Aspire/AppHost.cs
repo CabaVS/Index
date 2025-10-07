@@ -6,6 +6,14 @@ IResourceBuilder<ParameterResource> keycloakLogOutputFullPath = builder.AddParam
 IResourceBuilder<ParameterResource> keycloakUsername = builder.AddParameter("KeycloakUsername");
 IResourceBuilder<ParameterResource> keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true);
 
+IResourceBuilder<AzureCosmosDBResource> cosmos = builder
+    .AddAzureCosmosDB("cosmos-cvs-idx-local")
+    .RunAsEmulator(emulator =>
+    {
+        emulator.WithDataVolume();
+        emulator.WithLifetime(ContainerLifetime.Persistent);
+    });
+
 IResourceBuilder<SqlServerServerResource> sql = builder
     .AddSqlServer("sql-cvs-idx-local", sqlPassword, port: 1433)
     .WithDataVolume()
@@ -67,6 +75,11 @@ IResourceBuilder<KeycloakResource> keycloak = builder
 
 builder.AddProject<Projects.CabaVS_Workerly_Web>("ca-cvs-idx-workerly-local")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-    .WithReference(keycloak).WaitFor(keycloak);
+    .WithEnvironment("Cosmos__Database", "workerly")
+    .WithEnvironment("Cosmos__Containers__Users", "users")
+    .WithEnvironment("Cosmos__Containers__Workspaces", "workspaces")
+    .WithEnvironment("Cosmos__Containers__Memberships", "memberships")
+    .WithReference(keycloak).WaitFor(keycloak)
+    .WithReference(cosmos).WaitFor(cosmos);
 
 await builder.Build().RunAsync();

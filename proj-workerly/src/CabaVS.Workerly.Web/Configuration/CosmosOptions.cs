@@ -1,0 +1,16 @@
+﻿namespace CabaVS.Workerly.Web.Configuration;
+
+internal sealed class CosmosOptions
+{
+    public string Endpoint { get; set; } = "";
+    public string Key { get; set; } = "";
+    public string Database { get; set; } = "";
+    public ContainerNames Containers { get; set; } = new();
+
+    internal sealed class ContainerNames
+    {
+        public string Users { get; set; } = "";
+        public string Workspaces { get; set; } = "";
+        public string Memberships { get; set; } = "";
+    }
+}
