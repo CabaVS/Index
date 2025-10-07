@@ -3,7 +3,7 @@ using CabaVS.Workerly.Web.Entities;
 
 namespace CabaVS.Workerly.Web.Services;
 
-internal sealed class UserService(IHttpContextAccessor httpContextAccessor, ILogger<UserService> logger)
+internal sealed class CurrentUserProvider(IHttpContextAccessor httpContextAccessor, ILogger<CurrentUserProvider> logger)
 {
     public User GetCurrentUser()
     {

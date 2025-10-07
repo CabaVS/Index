@@ -10,11 +10,53 @@
 
         @if (User.Identity?.IsAuthenticated ?? false)
         {
-            <form method="post" asp-page="/Auth/Logout" class="ms-md-auto m-0">
-                <button type="submit" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-box-arrow-right me-1"></i> Logout
-                </button>
-            </form>
+            <div class="ms-md-auto d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        @{
+                            var selected = Model.Workspaces.SingleOrDefault(w => w.IsSelected);
+                            @:(@(selected?.Name ?? "No workspace"))
+                        }
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        @if (Model.Workspaces.Count == 0)
+                        {
+                            <li class="dropdown-item-text text-body-secondary">No workspaces yet</li>
+                            <li><hr class="dropdown-divider" /></li>
+                        }
+                        else
+                        {
+                            @foreach (var w in Model.Workspaces)
+                            {
+                                <li>
+                                    <form method="post" asp-page-handler="SelectWorkspace" class="px-2 py-1">
+                                        <input type="hidden" asp-for="SelectedWorkspaceId" value="@w.Id" />
+                                        <button type="submit" class="btn btn-link p-0 text-start w-100">
+                                            @w.Name
+                                            @if (w.IsSelected)
+                                            {
+                                                <i class="bi bi-check ms-2"></i>
+                                            }
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                            <li><hr class="dropdown-divider" /></li>
+                        }
+                        <li>
+                            <a class="dropdown-item" asp-page="/Workspaces/Create">
+                                <i class="bi bi-plus-circle me-1"></i> Create new workspace…
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <form method="post" asp-page="/Auth/Logout" class="m-0">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </button>
+                </form>
+            </div>
         }
         else
         {
@@ -23,7 +65,6 @@
             </a>
         }
     </div>
-
     <div class="card-body">
         @if (User.Identity?.IsAuthenticated ?? false)
         {

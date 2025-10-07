@@ -33,7 +33,7 @@ builder.Services.Configure<TeamsDefinitionOptions>(
 
 // Azure Cosmos DB
 builder.TryConfigureCosmosDbForLocalDevelopment();
-builder.Services.AddCosmos(builder.Configuration);
+builder.Services.AddCosmos(builder.Configuration, builder.Environment);
 
 // Auth
 builder.Services
@@ -130,7 +130,8 @@ builder.Services.AddSingleton(sp =>
     return client ?? throw new InvalidOperationException("Failed to create WorkItemTrackingHttpClient.");
 });
 
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<CurrentUserProvider>();
+builder.Services.AddScoped<IWorkspaceService, CosmosWorkspaceService>();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -154,5 +155,11 @@ app.MapRazorPages();
 
 app.MapReportingInfoEndpoint();
 app.MapRemainingWorkEndpoint();
+
+if (app.Environment.IsDevelopment())
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    await scope.ServiceProvider.EnsureCosmosArtifactsAsync();
+}
 
 await app.RunAsync();

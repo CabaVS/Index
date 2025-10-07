@@ -10,6 +10,7 @@ IResourceBuilder<AzureCosmosDBResource> cosmos = builder
     .AddAzureCosmosDB("cosmos-cvs-idx-local")
     .RunAsEmulator(emulator =>
     {
+        emulator.WithGatewayPort(5005);
         emulator.WithDataVolume();
         emulator.WithLifetime(ContainerLifetime.Persistent);
     });

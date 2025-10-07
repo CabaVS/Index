@@ -189,6 +189,9 @@ dotnet_diagnostic.CA1036.severity = suggestion
 # CA1305: Specify IFormatProvider
 dotnet_diagnostic.CA1305.severity = suggestion
 
+# CA1308: Normalize strings to uppercase
+dotnet_diagnostic.CA1308.severity = suggestion
+
 # CA1716: Identifiers should not match keywords
 dotnet_diagnostic.CA1716.severity = suggestion
 
@@ -215,6 +218,9 @@ dotnet_diagnostic.S125.severity = suggestion
 
 # S3358: Ternary operators should not be nested
 dotnet_diagnostic.S3358.severity = suggestion
+
+# S6667: Logging in a catch clause should pass the caught exception as a parameter
+dotnet_diagnostic.S6667.severity = suggestion
 
 ### Generated code ###
 
