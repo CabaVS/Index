@@ -36,6 +36,11 @@
     <File Path="infrastructure\terraform\modules\proj_identityserver\outputs.tf" />
     <File Path="infrastructure\terraform\modules\proj_identityserver\variables.tf" />
   </Folder>
+  <Folder Name="/Infrastructure/Terraform/Projects/Workerly/">
+    <File Path="infrastructure\terraform\modules\proj_workerly\main.tf" />
+    <File Path="infrastructure\terraform\modules\proj_workerly\outputs.tf" />
+    <File Path="infrastructure\terraform\modules\proj_workerly\variables.tf" />
+  </Folder>
   <Folder Name="/Infrastructure/Terraform/Shared/">
     <File Path="infrastructure\terraform\modules\shared\main.tf" />
     <File Path="infrastructure\terraform\modules\shared\outputs.tf" />

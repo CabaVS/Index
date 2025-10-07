@@ -34,3 +34,7 @@ variable "sql_admin_password" {
   type      = string
   sensitive = true
 }
+
+variable "cosmos_account_name" {
+  type = string
+}

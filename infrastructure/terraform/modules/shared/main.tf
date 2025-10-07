@@ -60,3 +60,27 @@ resource "azurerm_mssql_server" "shared" {
   public_network_access_enabled = true
   minimum_tls_version           = "1.2"
 }
+
+resource "azurerm_cosmosdb_account" "cosmos" {
+  name                = var.cosmos_account_name
+  location            = var.location
+  resource_group_name = var.rg_name
+
+  offer_type = "Standard"
+  kind       = "GlobalDocumentDB"
+
+  free_tier_enabled = true
+
+  consistency_policy {
+    consistency_level = "Session"
+  }
+
+  geo_location {
+    location          = var.location
+    failover_priority = 0
+  }
+
+  capabilities {
+    name = "EnableServerless"
+  }
+}

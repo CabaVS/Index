@@ -9,4 +9,5 @@ internal sealed class UserWorkspace
     public Workspace? Workspace { get; set; }
 
     public bool IsAdmin { get; set; }
+    public bool IsSelected { get; set; }
 }
