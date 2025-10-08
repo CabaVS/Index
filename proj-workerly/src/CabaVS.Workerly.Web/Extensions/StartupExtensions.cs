@@ -40,22 +40,22 @@ internal static class StartupExtensions
         {
             CosmosOptions opts = sp.GetRequiredService<IOptions<CosmosOptions>>().Value;
 
-            // Some of those options are required because of the open issue
-            // https://github.com/dotnet/aspire/issues/5364
             var cosmosClientOptions = new CosmosClientOptions
             {
                 AllowBulkExecution = true,
                 ApplicationName = $"Workerly-Web-{env.EnvironmentName}",
-                ConnectionMode = ConnectionMode.Gateway,
-                LimitToEndpoint = true,
                 SerializerOptions = new CosmosSerializationOptions
                 {
-                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.Default
+                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
                 }
             };
             
+            // Some of those options are required because of the open issue
+            // https://github.com/dotnet/aspire/issues/5364
             if (env.IsDevelopment())
             {
+                cosmosClientOptions.ConnectionMode = ConnectionMode.Gateway;
+                cosmosClientOptions.LimitToEndpoint = true;
                 cosmosClientOptions.HttpClientFactory = () =>
                 {
                     var handler = new HttpClientHandler
@@ -103,18 +103,12 @@ internal static class StartupExtensions
         {
             UniqueKeyPolicy = new UniqueKeyPolicy
             {
-                UniqueKeys = { new UniqueKey { Paths = { "/emailLower" } } }
+                UniqueKeys = { new UniqueKey { Paths = { "/email" } } }
             }
         };
         await db.CreateContainerIfNotExistsAsync(usersProps, throughput: null, cancellationToken: ct);
         
-        var wsProps = new ContainerProperties(id: cWs, partitionKeyPath: "/id")
-        {
-            UniqueKeyPolicy = new UniqueKeyPolicy
-            {
-                UniqueKeys = { new UniqueKey { Paths = { "/nameLower" } } }
-            }
-        };
+        var wsProps = new ContainerProperties(id: cWs, partitionKeyPath: "/id");
         await db.CreateContainerIfNotExistsAsync(wsProps, cancellationToken: ct);
         
         var memProps = new ContainerProperties(id: cMembers, partitionKeyPath: "/workspaceId");

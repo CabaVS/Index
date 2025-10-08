@@ -183,6 +183,9 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
 ### Custom rules ###
 
+# CA1031: Do not catch general exception types
+dotnet_diagnostic.CA1031.severity = suggestion
+
 # CA1036: Override methods on comparable types
 dotnet_diagnostic.CA1036.severity = suggestion
 

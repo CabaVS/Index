@@ -13,7 +13,7 @@ public static class RemainingWorkTypeExtensions
 {
     private static readonly HashSet<string> FunctionalTags = ["Functionality"];
     private static readonly HashSet<string> RequirementsTags = ["Requirements"];
-    private static readonly HashSet<string> ReleaseFinalizationTags = [];
+    private static readonly HashSet<string> ReleaseFinalizationTags = ["Release finalization"];
     private static readonly HashSet<string> TechnicalTags = ["Technical", "Non-functional requirements", "Refactoring"];
     
     public static RemainingWorkType DetermineFromTags(this IEnumerable<string> tags)

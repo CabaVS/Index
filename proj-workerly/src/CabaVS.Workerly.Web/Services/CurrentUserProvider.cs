@@ -23,8 +23,13 @@ internal sealed class CurrentUserProvider(IHttpContextAccessor httpContextAccess
         {
             throw new InvalidOperationException("Authenticated user has an invalid NameIdentifier claim format (not a GUID).");
         }
-        
-        var user = new User { Id = userIdValue };
+
+        var user = new User
+        {
+            Id = userIdValue,
+            Email = claimsPrincipal.FindFirstValue(ClaimTypes.Email)
+                    ?? string.Empty
+        };
         
         logger.LogInformation("Successfully retrieved current user with Id: {UserId}", user.Id);
         

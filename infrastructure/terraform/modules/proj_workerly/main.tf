@@ -13,7 +13,7 @@ resource "azurerm_cosmosdb_sql_container" "users" {
   partition_key_paths = ["/id"]
 
   unique_key {
-    paths = ["/emailLower"]
+    paths = ["/email"]
   }
 }
 
@@ -24,10 +24,6 @@ resource "azurerm_cosmosdb_sql_container" "workspaces" {
   database_name       = azurerm_cosmosdb_sql_database.db.name
 
   partition_key_paths = ["/id"]
-
-  unique_key {
-    paths = ["/nameLower"]
-  }
 }
 
 resource "azurerm_cosmosdb_sql_container" "memberships" {
