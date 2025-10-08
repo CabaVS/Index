@@ -13,7 +13,7 @@
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#sessionCardBody"
-                    aria-expanded="true"
+                    aria-expanded="false"
                     aria-controls="sessionCardBody">
                 <h2 class="h5 mb-0">Session</h2>
             </button>
@@ -34,7 +34,7 @@
             }
         </div>
 
-        <div id="sessionCardBody" class="collapse show">
+        <div id="sessionCardBody" class="collapse">
             <div class="card-body">
                 @if (User.Identity?.IsAuthenticated ?? false)
                 {
@@ -82,7 +82,7 @@
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#workspaceCardBody"
-                        aria-expanded="true"
+                        aria-expanded="false"
                         aria-controls="workspaceCardBody">
                     <h2 class="h5 mb-0">Workspace</h2>
                 </button>
@@ -133,7 +133,7 @@
                 </div>
             </div>
 
-            <div id="workspaceCardBody" class="collapse show">
+            <div id="workspaceCardBody" class="collapse">
                 <div class="card-body">
                     <!-- Future workspace content will go here -->
                 </div>
