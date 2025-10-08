@@ -183,4 +183,43 @@
             });
         </script>
     }
+
+    <script>
+    (function () {
+      const keys = {
+        session: 'cvs.ui.card.session.expanded',
+        workspace: 'cvs.ui.card.workspace.expanded'
+      };
+        
+      function applyState(id, key) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const saved = localStorage.getItem(key);
+        const wantExpanded = (saved === null) ? true : (saved === '1');
+
+        const collapse = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+        if (wantExpanded) { collapse.show(); } else { collapse.hide(); }
+          
+        const btn = document.querySelector(`[data-bs-target="#${id}"]`);
+        if (btn) btn.setAttribute('aria-expanded', String(wantExpanded));
+      }
+        
+      function wirePersistence(id, key) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.addEventListener('shown.bs.collapse', () => localStorage.setItem(key, '1'));
+        el.addEventListener('hidden.bs.collapse', () => localStorage.setItem(key, '0'));
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        applyState('sessionCardBody', keys.session);
+        applyState('workspaceCardBody', keys.workspace);
+
+        wirePersistence('sessionCardBody', keys.session);
+        wirePersistence('workspaceCardBody', keys.workspace);
+      });
+    })();
+    </script>
 }
