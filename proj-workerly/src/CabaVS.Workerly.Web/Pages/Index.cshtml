@@ -135,32 +135,7 @@
 
             <div id="workspaceCardBody" class="collapse show">
                 <div class="card-body">
-                    @if (Model.Workspaces.Count == 0)
-                    {
-                        <p class="mb-0 text-body-secondary">
-                            You don’t have any workspaces yet. Use the dropdown to create one.
-                        </p>
-                    }
-                    else
-                    {
-                        <p class="mb-2 small text-body-secondary">
-                            Switch between your workspaces using the dropdown in the header.
-                        </p>
-                        <ul class="list-group list-group-flush small">
-                            @foreach (var w in Model.Workspaces)
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>@w.Name</span>
-                                    @if (w.IsSelected)
-                                    {
-                                        <span class="badge rounded-pill text-bg-success">
-                                            <i class="bi bi-check2 me-1"></i>Selected
-                                        </span>
-                                    }
-                                </li>
-                            }
-                        </ul>
-                    }
+                    <!-- Future workspace content will go here -->
                 </div>
             </div>
         </div>
