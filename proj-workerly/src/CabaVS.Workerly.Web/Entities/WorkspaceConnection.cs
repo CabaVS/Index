@@ -7,4 +7,8 @@ internal sealed class WorkspaceConnection
 
     public string Organization { get; set; } = string.Empty;
     public string PersonalAccessToken { get; set; } = string.Empty;
+
+    public TeamsDefinition TeamsDefinition { get; set; } = new([]);
 }
+
+internal sealed record TeamsDefinition(Dictionary<string, HashSet<string>> Teams);

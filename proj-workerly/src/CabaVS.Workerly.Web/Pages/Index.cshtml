@@ -135,24 +135,35 @@
 
             <div id="workspaceCardBody" class="collapse">
                 <div class="card-body">
-                    @if (Model.IsSelectedWorkspaceAdmin)
-                    {
-                        <div class="d-flex gap-2">
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#inviteUserModal">
-                                <i class="bi bi-person-plus me-1"></i> Invite user
-                            </button>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        @if (Model.IsSelectedWorkspaceAdmin)
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button"
+                                        class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#inviteUserModal">
+                                    <i class="bi bi-person-plus me-1"></i> Invite user
+                                </button>
 
-                            <button type="button"
-                                    class="btn btn-outline-primary btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#configureConnectionModal">
-                                <i class="bi bi-gear me-1"></i> Configure connection
-                            </button>
-                        </div>
-                    }
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#configureConnectionModal">
+                                    <i class="bi bi-gear me-1"></i> Configure connection
+                                </button>
+                            </div>
+                            
+                            <span class="vr d-none d-md-block mx-2" style="height:24px;"></span>
+                            <hr class="d-md-none my-2 w-100" />
+                        }
+                        
+                        <a class="btn btn-outline-dark btn-sm"
+                           asp-page="/Workspaces/Teams"
+                           asp-route-workspaceId="@Model.SelectedWorkspaceId">
+                            <i class="bi bi-people me-1"></i> Configure teams
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

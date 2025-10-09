@@ -1,0 +1,124 @@
+﻿@page "/workspaces/{workspaceId:guid}/teams"
+@model CabaVS.Workerly.Web.Pages.Workspaces.Teams
+@{
+    ViewData["Title"] = "Configure teams";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0">Configure teams</h2>
+    <div class="d-flex gap-2">
+        <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to main
+        </a>
+        <form method="post" asp-page-handler="Save" class="m-0">
+            <input type="hidden" asp-for="WorkspaceId" />
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-check2 me-1"></i> Save
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-secondary py-2 px-3 small">
+    Members may edit teams. Enter team names on the left and comma-separated member codes on the right.
+</div>
+
+<div asp-validation-summary="All" class="text-danger small mb-2"></div>
+
+<form method="post" asp-page-handler="Save" id="teamsForm">
+    <input type="hidden" asp-for="WorkspaceId" />
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+            <tr>
+                <th style="width:30%">Team</th>
+                <th>Members (comma-separated)</th>
+                <th style="width:1%; white-space:nowrap;"></th>
+            </tr>
+            </thead>
+            <tbody id="teamsBody">
+            @for (var i = 0; i < Model.Rows.Count; i++)
+            {
+                <tr>
+                    <td>
+                        <input class="form-control form-control-sm"
+                               name="EditRows[@i].Team"
+                               value="@Model.Rows[i].Team" />
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm"
+                               name="EditRows[@i].MembersCsv"
+                               value="@Model.Rows[i].MembersCsv" />
+                    </td>
+                    <td class="text-nowrap">
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm remove-row"
+                                title="Remove row" aria-label="Remove row">
+                            &times;
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <button type="button" id="addRow" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-plus me-1"></i> Add row
+    </button>
+
+    <div class="mt-3 d-flex gap-2">
+        <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to main
+        </a>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-check2 me-1"></i> Save
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+          const body = document.getElementById('teamsBody');
+          const add = document.getElementById('addRow');
+        
+          function wireRemove(btn) {
+            btn.addEventListener('click', function () {
+              const tr = btn.closest('tr');
+              if (tr) tr.remove();
+              reindex();
+            });
+          }
+        
+          function reindex() {
+            const rows = body.querySelectorAll('tr');
+            rows.forEach((tr, idx) => {
+              const team = tr.querySelector('input[name*=".Team"]');
+              const mems = tr.querySelector('input[name*=".MembersCsv"]');
+              if (team) team.name = `EditRows[${idx}].Team`;
+              if (mems) mems.name = `EditRows[${idx}].MembersCsv`;
+            });
+          }
+        
+          // Wire existing remove buttons
+          body.querySelectorAll('.remove-row').forEach(wireRemove);
+        
+          add.addEventListener('click', function () {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><input class="form-control form-control-sm" name="EditRows[0].Team" /></td>
+              <td><input class="form-control form-control-sm" name="EditRows[0].MembersCsv" /></td>
+              <td>
+                <button type="button" class="btn btn-link text-danger p-0 remove-row" title="Remove row">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </td>`;
+            body.appendChild(tr);
+            wireRemove(tr.querySelector('.remove-row'));
+            reindex();
+          });
+        })();
+    </script>
+}
