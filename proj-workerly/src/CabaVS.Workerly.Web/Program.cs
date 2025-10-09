@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using CabaVS.Workerly.Web.Configuration;
 using CabaVS.Workerly.Web.Endpoints;
+using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Extensions;
 using CabaVS.Workerly.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -14,6 +16,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +62,39 @@ builder.Services
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("email");
+        
+        options.Events = new OpenIdConnectEvents
+        {
+            OnTokenValidated = async ctx =>
+            {
+                ILogger logger = ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("AuthBootstrap");
+
+                ClaimsPrincipal? principal = ctx.Principal;
+                if (principal?.Identity is not { IsAuthenticated: true })
+                {
+                    logger.LogWarning("Token validated but principal not authenticated.");
+                    return;
+                }
+                
+                using IServiceScope scope = ctx.HttpContext.RequestServices.CreateScope();
+                
+                CurrentUserProvider currentUserProvider = scope.ServiceProvider.GetRequiredService<CurrentUserProvider>();
+                User user = currentUserProvider.GetCurrentUser(principal);
+                
+                try
+                {
+                    IUserService users = scope.ServiceProvider.GetRequiredService<IUserService>();
+                    await users.EnsureExistsAsync(user, ctx.HttpContext.RequestAborted);
+                    logger.LogInformation("Ensured user exists for {UserId} ({Email}).", user.Id, user.Email);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed ensuring user existence for {UserId}.", user.Id);
+                }
+            }
+        };
     });
 builder.Services .AddAuthorization(
     options => options.FallbackPolicy = new AuthorizationPolicyBuilder() 
@@ -132,6 +168,7 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddScoped<CurrentUserProvider>();
 builder.Services.AddScoped<IWorkspaceService, CosmosWorkspaceService>();
+builder.Services.AddScoped<IUserService, CosmosUserService>();
 
 builder.Services.AddHttpContextAccessor();
 

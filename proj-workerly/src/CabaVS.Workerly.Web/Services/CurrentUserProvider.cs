@@ -5,9 +5,10 @@ namespace CabaVS.Workerly.Web.Services;
 
 internal sealed class CurrentUserProvider(IHttpContextAccessor httpContextAccessor, ILogger<CurrentUserProvider> logger)
 {
-    public User GetCurrentUser()
+    public User GetCurrentUser() => GetCurrentUser(httpContextAccessor.HttpContext?.User);
+    
+    public User GetCurrentUser(ClaimsPrincipal? claimsPrincipal)
     {
-        ClaimsPrincipal? claimsPrincipal = httpContextAccessor.HttpContext?.User;
         if (claimsPrincipal?.Identity is not { IsAuthenticated: true })
         {
             throw new InvalidOperationException("No authenticated user found in the current HttpContext.");
