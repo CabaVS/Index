@@ -168,6 +168,7 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddScoped<CurrentUserProvider>();
 builder.Services.AddScoped<IWorkspaceService, CosmosWorkspaceService>();
+builder.Services.AddScoped<IWorkspaceConfigService, CosmosWorkspaceConfigService>();
 builder.Services.AddScoped<IUserService, CosmosUserService>();
 
 builder.Services.AddHttpContextAccessor();

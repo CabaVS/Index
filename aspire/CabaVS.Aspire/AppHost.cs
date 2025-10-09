@@ -79,6 +79,7 @@ builder.AddProject<Projects.CabaVS_Workerly_Web>("ca-cvs-idx-workerly-local")
     .WithEnvironment("Cosmos__Database", "workerly")
     .WithEnvironment("Cosmos__Containers__Users", "users")
     .WithEnvironment("Cosmos__Containers__Workspaces", "workspaces")
+    .WithEnvironment("Cosmos__Containers__WorkspaceConfigs", "workspaceConfigs")
     .WithEnvironment("Cosmos__Containers__Memberships", "memberships")
     .WithReference(keycloak).WaitFor(keycloak)
     .WithReference(cosmos).WaitFor(cosmos);

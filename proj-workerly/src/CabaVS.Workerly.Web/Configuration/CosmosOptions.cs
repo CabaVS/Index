@@ -11,6 +11,7 @@ internal sealed class CosmosOptions
     {
         public string Users { get; set; } = "";
         public string Workspaces { get; set; } = "";
+        public string WorkspaceConfigs { get; set; } = "";
         public string Memberships { get; set; } = "";
     }
 }

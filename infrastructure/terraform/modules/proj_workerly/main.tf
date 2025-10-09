@@ -26,6 +26,15 @@ resource "azurerm_cosmosdb_sql_container" "workspaces" {
   partition_key_paths = ["/id"]
 }
 
+resource "azurerm_cosmosdb_sql_container" "workspace_configs" {
+  name                = "workspaceConfigs"
+  resource_group_name = var.rg_name
+  account_name        = var.cosmos_account_name
+  database_name       = azurerm_cosmosdb_sql_database.db.name
+
+  partition_key_paths = ["/workspaceId"]
+}
+
 resource "azurerm_cosmosdb_sql_container" "memberships" {
   name                = "memberships"
   resource_group_name = var.rg_name

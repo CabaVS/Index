@@ -79,6 +79,7 @@ internal static class StartupExtensions
                 Database = db,
                 Users = db.GetContainer(opts.Containers.Users),
                 Workspaces = db.GetContainer(opts.Containers.Workspaces),
+                WorkspaceConfigs = db.GetContainer(opts.Containers.WorkspaceConfigs),
                 Memberships = db.GetContainer(opts.Containers.Memberships)
             };
         });
@@ -94,6 +95,7 @@ internal static class StartupExtensions
         var dbName = cfg.Database;
         var cUsers = cfg.Containers.Users;
         var cWs = cfg.Containers.Workspaces;
+        var cWsCfg = cfg.Containers.WorkspaceConfigs;
         var cMembers = cfg.Containers.Memberships;
         
         DatabaseResponse? dbResp = await ctx.Client.CreateDatabaseIfNotExistsAsync(dbName, cancellationToken: ct);
@@ -110,6 +112,9 @@ internal static class StartupExtensions
         
         var wsProps = new ContainerProperties(id: cWs, partitionKeyPath: "/id");
         await db.CreateContainerIfNotExistsAsync(wsProps, cancellationToken: ct);
+        
+        var cfgProps = new ContainerProperties(id: cWsCfg, partitionKeyPath: "/workspaceId");
+        await db.CreateContainerIfNotExistsAsync(cfgProps, cancellationToken: ct);
         
         var memProps = new ContainerProperties(id: cMembers, partitionKeyPath: "/workspaceId");
         await db.CreateContainerIfNotExistsAsync(memProps, cancellationToken: ct);

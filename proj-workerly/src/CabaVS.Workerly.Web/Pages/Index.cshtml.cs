@@ -7,11 +7,17 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace CabaVS.Workerly.Web.Pages;
 
-internal sealed class Index(ILogger<Index> logger, CurrentUserProvider currentUserProvider, IWorkspaceService workspaceService) : PageModel
+internal sealed class Index(
+    ILogger<Index> logger,
+    CurrentUserProvider currentUserProvider,
+    IWorkspaceService workspaceService,
+    IWorkspaceConfigService configService) : PageModel
 {
     public IReadOnlyList<WorkspaceListItem> Workspaces { get; private set; } = [];
     
     public bool IsSelectedWorkspaceAdmin { get; private set; }
+    
+    public bool ConnPatIsSet { get; private set; }
     
     [BindProperty]
     public Guid? SelectedWorkspaceId { get; set; }
@@ -24,6 +30,12 @@ internal sealed class Index(ILogger<Index> logger, CurrentUserProvider currentUs
     [Required]
     [StringLength(80, MinimumLength = 2)]
     public string? NewWorkspaceName { get; set; }
+    
+    [BindProperty]
+    public string? ConnOrganization { get; set; }
+    
+    [BindProperty]
+    public string? ConnPersonalAccessToken { get; set; }
     
     public async Task<IActionResult> OnGet(CancellationToken ct)
     {
@@ -48,6 +60,26 @@ internal sealed class Index(ILogger<Index> logger, CurrentUserProvider currentUs
             
             logger.LogInformation("Selected workspace for user {UserId}: {WorkspaceId} ({WorkspaceName}).",
                 user.Id, selectedWorkspace.Id, selectedWorkspace.Name);
+            
+            if (IsSelectedWorkspaceAdmin)
+            {
+                WorkspaceConnection? cfg = await configService.GetAsync(SelectedWorkspaceId.Value, ct);
+                if (cfg is not null)
+                {
+                    ConnOrganization = cfg.Organization;
+                    ConnPatIsSet = !string.IsNullOrEmpty(cfg.PersonalAccessToken);
+                    
+                    logger.LogInformation("Loaded connection settings for workspace {WorkspaceId}. PAT set: {HasPat}",
+                        SelectedWorkspaceId.Value, ConnPatIsSet);
+                }
+                else
+                {
+                    ConnOrganization = null;
+                    ConnPatIsSet = false;
+                    
+                    logger.LogInformation("No connection settings found for workspace {WorkspaceId}.", SelectedWorkspaceId.Value);
+                }
+            }
         }
         else
         {
@@ -202,5 +234,78 @@ internal sealed class Index(ILogger<Index> logger, CurrentUserProvider currentUs
                 ViewData["ShowInviteModal"] = true;
                 return Page();
         }
+    }
+
+    public async Task<IActionResult> OnPostSaveConnectionAsync(
+        [FromServices] IWorkspaceConfigService cfgService,
+        CancellationToken ct)
+    {
+        if (User.Identity is not { IsAuthenticated: true })
+        {
+            logger.LogInformation("Unauthenticated POST SaveConnection.");
+            return RedirectToPage();
+        }
+        
+        ModelState.Remove(nameof(NewWorkspaceName));
+        ModelState.Remove(nameof(InviteEmail));
+
+        if (!SelectedWorkspaceId.HasValue)
+        {
+            logger.LogWarning("SaveConnection missing SelectedWorkspaceId.");
+            ModelState.AddModelError(string.Empty, "No workspace selected.");
+        }
+
+        if (string.IsNullOrWhiteSpace(ConnOrganization))
+        {
+            ModelState.AddModelError(nameof(ConnOrganization), "Organization is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(ConnPersonalAccessToken))
+        {
+            ModelState.AddModelError(nameof(ConnPersonalAccessToken), "Personal Access Token is required.");
+        }
+
+        User me = currentUserProvider.GetCurrentUser();
+        Workspaces = await workspaceService.GetForUserAsync(me.Id, ct);
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["ShowConfigureModal"] = true;
+            return Page();
+        }
+
+        Guid wsId = SelectedWorkspaceId!.Value;
+        logger.LogInformation("User {UserId} saving connection for workspace {WorkspaceId}.",
+            me.Id, wsId);
+
+        SaveConnectionResult result = await cfgService.UpsertAsync(
+            me.Id, wsId, ConnOrganization!, ConnPersonalAccessToken!, ct);
+
+        switch (result)
+        {
+            case SaveConnectionResult.Success:
+                logger.LogInformation("Connection saved for workspace {WorkspaceId} by {UserId}.", wsId, me.Id);
+                return RedirectToPage();
+
+            case SaveConnectionResult.Forbidden:
+                logger.LogWarning("SaveConnection forbidden for user {UserId} on workspace {WorkspaceId}.", me.Id,
+                    wsId);
+                ModelState.AddModelError(string.Empty, "You are not an admin of this workspace.");
+                break;
+
+            case SaveConnectionResult.Invalid:
+                logger.LogWarning("SaveConnection invalid input for workspace {WorkspaceId} by {UserId}.", wsId, me.Id);
+                ModelState.AddModelError(string.Empty, "Invalid connection data.");
+                break;
+
+            default:
+                logger.LogError("SaveConnection unexpected error for workspace {WorkspaceId} by {UserId}.", wsId,
+                    me.Id);
+                ModelState.AddModelError(string.Empty, "Could not save connection due to an unexpected error.");
+                break;
+        }
+
+        ViewData["ShowConfigureModal"] = true;
+        return Page();
     }
 }
