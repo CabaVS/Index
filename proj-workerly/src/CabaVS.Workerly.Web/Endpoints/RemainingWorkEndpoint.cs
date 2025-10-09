@@ -130,8 +130,8 @@ internal static class RemainingWorkEndpoint
                     .GroupBy(x => x.Team)
                     .Select(g => new RemainingWorkResponseItem(
                         g.Key,
-                        g.Select(x => x.RemainingWorkModel).Sum()))
-                    .OrderByDescending(x => x.RemainingWorkModel)
+                        g.Select(x => x.RemainingWork).Sum()))
+                    .OrderByDescending(x => x.RemainingWork)
                     .ThenBy(x => x.Team);
 
                 logger.LogInformation("Remaining work processing completed for WorkItemId: {WorkItemId}", workItemId);

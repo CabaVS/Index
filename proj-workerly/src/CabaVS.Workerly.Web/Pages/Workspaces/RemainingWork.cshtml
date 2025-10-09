@@ -1,0 +1,119 @@
+﻿@page "/workspaces/{workspaceId:guid}/remaining-work"
+@model CabaVS.Workerly.Web.Pages.Workspaces.RemainingWork
+@{
+    ViewData["Title"] = "Remaining work";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Remaining work</h1>
+    <div class="d-flex gap-2">
+        <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to main
+        </a>
+        <form method="post" asp-page-handler="Run"
+              class="d-flex align-items-center gap-2 m-0">
+            <input type="hidden" asp-for="WorkspaceId" />
+            <div class="input-group input-group-sm">
+                <span class="input-group-text">Work item</span>
+                <input asp-for="InputWorkItemId" class="form-control" type="number" min="1" required />
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-play"></i> Run
+            </button>
+        </form>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+@if (Model.WorkItemId.HasValue)
+{
+    <div class="border rounded p-2 mb-3 small text-body-secondary">
+        <div><strong>Work item:</strong> @Model.WorkItemId</div>
+        <div class="text-truncate"><strong>Title:</strong> @Model.WorkItemTitle</div>
+        <div><strong>Date:</strong> @Model.ExecutionDateUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div id="stackedChart" style="width:100%;height:520px;"></div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js"
+            integrity="sha256-uqjf5+HZM2uY6Jhrp+IOoV582+oe9CpZ1ZR4Yy+kWh0="
+            crossorigin="anonymous"></script>
+    @if (!string.IsNullOrWhiteSpace(Model.SnapshotJson))
+    {
+        <script>
+            const snapshot = @Html.Raw(Model.SnapshotJson);
+
+            const teams = (snapshot.report || [])
+              .map(x => x.team)
+              .filter(Boolean)
+              .sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
+
+            const f = [], r = [], t = [], e = [], o = [];
+            const totals = [];
+            for (const team of teams) {
+              const row = snapshot.report.find(x => x.team === team) || {};
+              const rw = row.remainingWork || {};
+              const vf = Number(rw.functionality        || 0);
+              const vr = Number(rw.requirements         || 0);
+              const vt = Number(rw.technical            || 0);
+              const ve = Number(rw.releaseFinalization  || 0);
+              const vo = Number(rw.other                || 0);
+              f.push(vf); r.push(vr); t.push(vt); e.push(ve); o.push(vo);
+              totals.push(vf+vr+vt+ve+vo);
+            }
+
+            const el = document.getElementById('stackedChart');
+            const chart = echarts.init(el, null, { renderer: 'canvas' });
+
+            const option = {
+              animation: false,
+              tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                valueFormatter: v => (typeof v === 'number' ? v.toFixed(2) : v),
+                formatter: params => {
+                  const idx = params?.[0]?.dataIndex ?? 0;
+                  const header = `<div style="margin-bottom:4px;"><strong>${teams[idx]}</strong></div>`;
+                  const lines = params.map(p =>
+                    `<div><span style="display:inline-block;margin-right:8px;border-radius:2px;width:10px;height:10px;background:${p.color}"></span>${p.seriesName}: <strong>${p.value?.toFixed?.(2) ?? p.value}</strong></div>`
+                  ).join('');
+                  const total = `<div style="margin-top:4px;border-top:1px solid #eee;padding-top:4px;">Total: <strong>${totals[idx].toFixed(2)}</strong></div>`;
+                  return header + lines + total;
+                }
+              },
+              grid: { left: 48, right: 16, top: 18, bottom: 170, containLabel: true },
+              legend: { bottom: 10, itemWidth: 14, itemHeight: 8, itemGap: 16, icon: 'roundRect',
+                  textStyle: { fontSize: 12 },
+                  data: ['Functionality','Requirements','Release finalization','Technical','Other'] },
+              xAxis: {
+                type: 'category',
+                data: teams,
+                axisLabel: { interval: 0, rotate: 35, margin: 14 }
+              },
+              yAxis: { type: 'value', name: 'Hours', nameGap: 12, splitLine: { show: true } },
+              series: [
+                { name: 'Functionality',         type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: f },
+                { name: 'Requirements',          type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: r }, 
+                { name: 'Release finalization',  type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: e },
+                { name: 'Technical',             type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: t },
+                { name: 'Other',                 type: 'bar', stack: 'total', emphasis: { focus: 'series' }, data: o }
+              ]
+            };
+
+            chart.setOption(option);
+            window.addEventListener('resize', () => chart.resize());
+        </script>
+    }
+}

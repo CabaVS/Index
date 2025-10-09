@@ -163,6 +163,15 @@
                            asp-route-workspaceId="@Model.SelectedWorkspaceId">
                             <i class="bi bi-people me-1"></i> Configure teams
                         </a>
+                        
+                        <span class="vr d-none d-md-block mx-2" style="height:24px;"></span>
+                        <hr class="d-md-none my-2 w-100" />
+                        
+                        <a class="btn btn-outline-dark btn-sm"
+                           asp-page="/Workspaces/RemainingWork"
+                           asp-route-workspaceId="@Model.SelectedWorkspaceId">
+                            <i class="bi bi-people me-1"></i> Remaining work
+                        </a>
                     </div>
                 </div>
             </div>

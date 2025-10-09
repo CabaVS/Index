@@ -2,4 +2,4 @@
 
 public sealed record RemainingWorkResponse(int Id, string Title, RemainingWorkResponseItem[] Report);
 
-public sealed record RemainingWorkResponseItem(string Team, RemainingWorkModel RemainingWorkModel);
+public sealed record RemainingWorkResponseItem(string Team, RemainingWorkModel RemainingWork);
