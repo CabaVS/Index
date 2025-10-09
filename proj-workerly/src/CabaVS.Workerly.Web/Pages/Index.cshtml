@@ -135,7 +135,15 @@
 
             <div id="workspaceCardBody" class="collapse">
                 <div class="card-body">
-                    <!-- Future workspace content will go here -->
+                    @if (Model.IsSelectedWorkspaceAdmin)
+                    {
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#inviteUserModal">
+                            <i class="bi bi-person-plus me-1"></i> Invite user
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -144,32 +152,65 @@
 
 <!-- Create Workspace Modal -->
 <div class="modal fade" id="createWorkspaceModal" tabindex="-1" aria-labelledby="createWorkspaceLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" asp-page-handler="CreateWorkspace">
-        <div class="modal-header">
-          <h5 class="modal-title" id="createWorkspaceLabel">Create workspace</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="CreateWorkspace">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createWorkspaceLabel">Create workspace</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
 
-        <div class="modal-body">
-          <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
-          <div class="mb-3">
-            <label asp-for="NewWorkspaceName" class="form-label">Name</label>
-            <input asp-for="NewWorkspaceName" class="form-control" autocomplete="off" />
-            <span asp-validation-for="NewWorkspaceName" class="text-danger small"></span>
-          </div>
-        </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="mb-3">
+                        <label asp-for="NewWorkspaceName" class="form-label">Name</label>
+                        <input asp-for="NewWorkspaceName" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="NewWorkspaceName" class="text-danger small"></span>
+                    </div>
+                </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm">
-            <i class="bi bi-check2 me-1"></i> Create
-          </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-check2 me-1"></i> Create
+                    </button>
+                </div>
+            </form>
         </div>
-      </form>
     </div>
-  </div>
+</div>
+
+<!-- Invite User Modal -->
+<div class="modal fade" id="inviteUserModal" tabindex="-1" aria-labelledby="inviteUserLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Invite">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inviteUserLabel">Invite user to workspace</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div asp-validation-summary="All" class="text-danger small mb-2"></div>
+                    
+                    <input type="hidden" asp-for="SelectedWorkspaceId" value="@(Model.SelectedWorkspaceId)" />
+
+                    <div class="mb-3">
+                        <label asp-for="InviteEmail" class="form-label">User email</label>
+                        <input asp-for="InviteEmail" class="form-control" type="email" autocomplete="off" />
+                        <span asp-validation-for="InviteEmail" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-send me-1"></i> Send invite
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -222,4 +263,14 @@
       });
     })();
     </script>
+    
+    @if (ViewData["ShowInviteModal"] as bool? == true)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var el = document.getElementById('inviteUserModal');
+                if (el) new bootstrap.Modal(el).show();
+            });
+        </script>
+    }
 }

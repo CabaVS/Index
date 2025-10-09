@@ -2,6 +2,7 @@
 using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Models;
 using Microsoft.Azure.Cosmos;
+using User = CabaVS.Workerly.Web.Entities.User;
 
 namespace CabaVS.Workerly.Web.Services;
 
@@ -46,7 +47,7 @@ internal sealed class CosmosWorkspaceService(ILogger<CosmosWorkspaceService> log
                     logger.LogInformation("Read workspace {WorkspaceId} (RU: {RequestCharge}).",
                         m.WorkspaceId, resp.RequestCharge);
 
-                    return new WorkspaceListItem(resp.Resource.Id, resp.Resource.Name, m.IsSelected);
+                    return new WorkspaceListItem(resp.Resource.Id, resp.Resource.Name, m.IsSelected, m.IsAdmin);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
@@ -133,5 +134,91 @@ internal sealed class CosmosWorkspaceService(ILogger<CosmosWorkspaceService> log
             workspace.Id, ownerUserId);
         
         return workspace.Id;
+    }
+
+    public async Task<InviteUserResult> InviteUserByEmailAsync(Guid inviterUserId, Guid workspaceId, string email,
+        CancellationToken ct)
+    {
+        logger.LogInformation("Inviting user '{Email}' to workspace {WorkspaceId} by inviter {InviterUserId}.",
+            email, workspaceId, inviterUserId);
+        
+        FeedIterator<UserWorkspace>? adminCheck = ctx.Memberships.GetItemQueryIterator<UserWorkspace>(
+            new QueryDefinition("SELECT TOP 1 * FROM m WHERE m.userId = @uid")
+                .WithParameter("@uid", inviterUserId),
+            requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(workspaceId.ToString()) });
+
+        UserWorkspace? inviterMembership = null;
+        if (adminCheck.HasMoreResults)
+        {
+            FeedResponse<UserWorkspace>? page = await adminCheck.ReadNextAsync(ct);
+            inviterMembership = page.Resource.FirstOrDefault();
+        }
+
+        if (inviterMembership is null || !inviterMembership.IsAdmin)
+        {
+            logger.LogWarning("Invite denied: inviter {InviterUserId} is not a member or not admin of workspace {WorkspaceId}.",
+                inviterUserId, workspaceId);
+            return InviteUserResult.Forbidden;
+        }
+        
+        var emailNorm = email.Trim().ToLowerInvariant();
+        logger.LogInformation("Searching for target user with normalized email '{EmailNorm}'.", emailNorm);
+        
+        FeedIterator<User> userIterator = ctx.Users.GetItemQueryIterator<User>(
+            new QueryDefinition("SELECT TOP 1 * FROM c WHERE c.email = @e")
+                .WithParameter("@e", emailNorm));
+        
+        User? targetUser = null;
+        while (userIterator.HasMoreResults && targetUser is null)
+        {
+            FeedResponse<User>? page = await userIterator.ReadNextAsync(ct);
+            targetUser = page.Resource.FirstOrDefault();
+        }
+
+        if (targetUser is null)
+        {
+            logger.LogWarning("Invite failed: user with email '{EmailNorm}' not found.", emailNorm);
+            return InviteUserResult.UserNotFound;
+        }
+        
+        logger.LogInformation("Checking if user {TargetUserId} already member of workspace {WorkspaceId}.",
+            targetUser.Id, workspaceId);
+        
+        FeedIterator<UserWorkspace>? memCheck = ctx.Memberships.GetItemQueryIterator<UserWorkspace>(
+            new QueryDefinition("SELECT TOP 1 * FROM m WHERE m.userId = @uid")
+                .WithParameter("@uid", targetUser.Id),
+            requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(workspaceId.ToString()) });
+
+        if (memCheck.HasMoreResults)
+        {
+            FeedResponse<UserWorkspace>? page = await memCheck.ReadNextAsync(ct);
+            if (page.Resource.Any())
+            {
+                logger.LogInformation("Invite skipped: user {TargetUserId} already member of workspace {WorkspaceId}.",
+                    targetUser.Id, workspaceId);
+                return InviteUserResult.AlreadyMember;
+            }
+        }
+        
+        var membership = new UserWorkspace
+        {
+            UserId = targetUser.Id,
+            WorkspaceId = workspaceId,
+            IsAdmin = false,
+            IsSelected = false
+        };
+        
+        logger.LogInformation("Creating new membership for user {TargetUserId} in workspace {WorkspaceId}.",
+            targetUser.Id, workspaceId);
+
+        await ctx.Memberships.CreateItemAsync(
+            membership,
+            new PartitionKey(workspaceId.ToString()),
+            cancellationToken: ct);
+        
+        logger.LogInformation("Membership created successfully for user {TargetUserId} in workspace {WorkspaceId}.",
+            targetUser.Id, workspaceId);
+
+        return InviteUserResult.Success;
     }
 }
