@@ -9,3 +9,19 @@ variable "location" {
 variable "cosmos_account_name" {
   type = string
 }
+
+variable "acr_id" {
+  type = string
+}
+
+variable "acr_login_server" {
+  type = string
+}
+
+variable "cae_id" {
+  type = string
+}
+
+variable "ca_name_for_workerly_web" {
+  type = string
+}

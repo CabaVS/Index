@@ -43,3 +43,81 @@ resource "azurerm_cosmosdb_sql_container" "memberships" {
 
   partition_key_paths = ["/workspaceId"]
 }
+
+resource "azurerm_container_app" "ca_workerly_web" {
+  name                         = var.ca_name_for_workerly_web
+  container_app_environment_id = var.cae_id
+  resource_group_name          = var.rg_name
+  revision_mode                = "Single"
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.uami_ca_workerly_web.id]
+  }
+
+  ingress {
+    allow_insecure_connections = false
+    external_enabled           = true
+    target_port                = 8080
+    transport                  = "auto"
+
+    traffic_weight {
+      percentage      = 100
+      label           = "primary"
+      latest_revision = true
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].env,
+      template[0].container[0].image
+    ]
+  }
+
+  registry {
+    server   = var.acr_login_server
+    identity = azurerm_user_assigned_identity.uami_ca_workerly_web.id
+  }
+
+  template {
+    min_replicas = 0
+    max_replicas = 1
+
+    container {
+      name   = "api"
+      image  = "mcr.microsoft.com/dotnet/samples:aspnetapp"
+      cpu    = 0.25
+      memory = "0.5Gi"
+    }
+  }
+}
+
+resource "azurerm_user_assigned_identity" "uami_ca_workerly_web" {
+  name                = "uami-${var.ca_name_for_workerly_web}"
+  resource_group_name = var.rg_name
+  location            = var.location
+}
+
+resource "azurerm_role_assignment" "acr_pull_for_aca_workerly_web" {
+  scope                = var.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
+}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "cosmos_db_rw_for_aca_workerly_web" {
+  account_name        = var.cosmos_account_name
+  resource_group_name = var.rg_name
+
+  principal_id       = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
+  role_definition_id = data.azurerm_cosmosdb_sql_role_definition.data_contributor.id
+
+  # DB-level scope
+  scope = "/dbs/${azurerm_cosmosdb_sql_database.db.name}"
+}
+
+data "azurerm_cosmosdb_sql_role_definition" "data_contributor" {
+  account_name        = var.cosmos_account_name
+  resource_group_name = var.rg_name
+  role_definition_id  = "00000000-0000-0000-0000-000000000002"
+}
