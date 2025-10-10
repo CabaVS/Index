@@ -112,6 +112,6 @@ resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_data_contributor_for_a
 
   role_definition_id = "${var.cosmos_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
 
-  scope        = azurerm_cosmosdb_sql_database.db.id
+  scope        = "/dbs/${azurerm_cosmosdb_sql_database.db.name}"
   principal_id = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
 }
