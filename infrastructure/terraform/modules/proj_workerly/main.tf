@@ -110,14 +110,8 @@ resource "azurerm_cosmosdb_sql_role_assignment" "cosmos_db_rw_for_aca_workerly_w
   resource_group_name = var.rg_name
 
   principal_id       = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
-  role_definition_id = data.azurerm_cosmosdb_sql_role_definition.data_contributor.id
+  role_definition_id = "00000000-0000-0000-0000-000000000002"
 
   # DB-level scope
   scope = "/dbs/${azurerm_cosmosdb_sql_database.db.name}"
-}
-
-data "azurerm_cosmosdb_sql_role_definition" "data_contributor" {
-  account_name        = var.cosmos_account_name
-  resource_group_name = var.rg_name
-  role_definition_id  = "00000000-0000-0000-0000-000000000002"
 }
