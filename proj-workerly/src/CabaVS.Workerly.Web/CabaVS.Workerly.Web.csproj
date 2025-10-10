@@ -1,7 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <PropertyGroup>
-    <UserSecretsId>cabavs-index-projects-workerly-web</UserSecretsId>
-  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
     <PackageReference Include="HtmlAgilityPack" />
@@ -22,6 +19,7 @@
     <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\CabaVS.Common.Infrastructure\CabaVS.Common.Infrastructure.csproj" />
     <ProjectReference Include="..\CabaVS.Workerly.Shared\CabaVS.Workerly.Shared.csproj" />
   </ItemGroup>
 </Project>

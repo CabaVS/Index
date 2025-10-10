@@ -38,3 +38,7 @@ variable "sql_admin_password" {
 variable "cosmos_account_name" {
   type = string
 }
+
+variable "storage_account_id" {
+  type = string
+}

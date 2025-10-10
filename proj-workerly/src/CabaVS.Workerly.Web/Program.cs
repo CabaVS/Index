@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Azure.Monitor.OpenTelemetry.Exporter;
+using CabaVS.Common.Infrastructure.ConfigurationProviders;
 using CabaVS.Workerly.Web.Configuration;
-using CabaVS.Workerly.Web.Endpoints;
 using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Extensions;
 using CabaVS.Workerly.Web.Services;
@@ -22,17 +22,15 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
+// Configuration
+builder.Configuration.AddJsonStreamFromBlob(
+    builder.Environment.IsDevelopment());
+
 // Logging
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 builder.Host.UseSerilog();
-
-// Configuration
-builder.Services.Configure<AzureDevOpsOptions>(
-    builder.Configuration.GetSection("AzureDevOps"));
-builder.Services.Configure<TeamsDefinitionOptions>(
-    builder.Configuration.GetSection("TeamsDefinition"));
 
 // Azure Cosmos DB
 builder.TryConfigureCosmosDbForLocalDevelopment();
@@ -190,9 +188,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
-
-app.MapReportingInfoEndpoint();
-app.MapRemainingWorkEndpoint();
 
 if (app.Environment.IsDevelopment())
 {

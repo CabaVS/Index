@@ -1,0 +1,213 @@
+name: Deployment of the Project for Workerly (web application)
+
+on:
+#  push:
+#    branches: [ "master" ]
+#    paths:
+#      - 'Directory.Build.props'
+#      - 'Directory.Packages.props'
+#      - 'global.json'
+#      - '.github/workflows/proj_workerly_web.yml'
+#      - './shared/**'
+#      - './proj-workerly/src/CabaVS.Workerly.Shared'
+#      - './proj-workerly/src/CabaVS.Workerly.Web'
+#      - './proj.workerly.web.Dockerfile'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  BUILD_CONFIGURATION: "Release"
+  DOCKER_IMAGE_NAME: "workerly-web"
+  DOCKERFILE_PATH: "./proj.workerly.web.Dockerfile"
+  PATH_TO_CSPROJ: "./proj-workerly/src/CabaVS.Workerly.Web.csproj"
+  PATH_TO_GLOBAL_JSON: "./global.json"
+
+jobs:
+  build-app:
+    name: Build application
+    runs-on: ubuntu-latest
+    
+    outputs:
+      content_tag: ${{ steps.tagcalc.outputs.content_tag }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: ${{ env.PATH_TO_GLOBAL_JSON }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.PATH_TO_CSPROJ }}
+
+      - name: Build
+        run: |
+          dotnet build ${{ env.PATH_TO_CSPROJ }} \
+            --no-restore \
+            -c ${{ env.BUILD_CONFIGURATION }} \
+            -p:ContinuousIntegrationBuild=true \
+            -p:Deterministic=true \
+            -p:EnableSourceControlManagerQueries=false \
+            -p:IncludeSourceRevisionInInformationalVersion=false
+
+      - name: Publish
+        run: |
+          dotnet publish \
+            --no-build \
+            -c ${{ env.BUILD_CONFIGURATION }} \
+            -p:ReadyToRunDeterministic=true \
+            -p:EnableSourceControlManagerQueries=false \
+            -p:IncludeSourceRevisionInInformationalVersion=false \
+            -o ./publish \
+            ${{ env.PATH_TO_CSPROJ }}
+
+      - name: Compute publish-output tag
+        id: tagcalc
+        run: |
+          set -euo pipefail
+          CONTENT_HASH=$(
+            cd ./publish
+            find . -type f ! -name '*.pdb' -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              | sha256sum \
+              | awk '{print $1}'
+          )
+          echo "content_tag=${CONTENT_HASH:0:12}" >> "$GITHUB_OUTPUT"      
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-publish
+          path: ./publish
+  
+  push-image:
+    environment: production
+    name: Push image to ACR
+    needs: [build-app]
+    runs-on: ubuntu-latest
+    
+    outputs:
+      content_tag: ${{ needs.build-app.outputs.content_tag }}
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-publish
+          path: ./publish
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Docker Login to ACR
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Check if content tag exists in ACR
+        id: exist
+        run: |
+          set -euo pipefail
+          REPO="${{ env.DOCKER_IMAGE_NAME }}"
+          TAG="${{ needs.build-app.outputs.content_tag }}"
+
+          if az acr repository show -n ${{ secrets.ACR_NAME }} --repository "$REPO" >/dev/null 2>&1; then
+            EXISTS=$(az acr repository show-tags \
+              -n ${{ secrets.ACR_NAME }} \
+              --repository "$REPO" \
+              --query "[?@=='$TAG'] | length(@)" -o tsv)
+          else
+            echo "Repository $REPO does not exist yet; will build & push."
+            EXISTS=0
+          fi
+
+          echo "exists=$EXISTS" >> "$GITHUB_OUTPUT"
+
+      - name: Build image (only if missing)
+        if: steps.exist.outputs.exists != '1'
+        run: |
+          docker build -f ${{ env.DOCKERFILE_PATH }} \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build-app.outputs.content_tag }} \
+            .
+
+      - name: Push image (only if missing)
+        if: steps.exist.outputs.exists != '1'
+        run: |
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build-app.outputs.content_tag }}
+
+      - name: Point :latest at the content tag (no re-push)
+        run: |
+          set -euo pipefail
+          DIGEST=$(az acr manifest list-metadata \
+            -r ${{ secrets.ACR_NAME }} \
+            -n ${{ env.DOCKER_IMAGE_NAME }} \
+            --query "[?tags[?@=='${{ needs.build-app.outputs.content_tag }}']].digest | [0]" -o tsv)
+          az acr import \
+            --name ${{ secrets.ACR_NAME }} \
+            --source ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}@${DIGEST} \
+            --image ${{ env.DOCKER_IMAGE_NAME }}:latest \
+            --force
+
+  deploy-to-aca:
+    environment: production
+    name: Deploy to ACA
+    needs: [push-image]
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Determine if ACA needs redeploy
+        id: diff
+        run: |
+          set -euo pipefail
+          DESIRED="${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.content_tag }}"
+          CURRENT=$(az containerapp show \
+            --name "${{ secrets.PROJ_WRKL_WEB_ACA_NAME }}" \
+            --resource-group "${{ secrets.RG_NAME }}" \
+            --query "properties.template.containers[0].image" -o tsv || echo "")
+          echo "Current: $CURRENT"
+          echo "Desired: $DESIRED"
+          if [ "$CURRENT" = "$DESIRED" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Azure Container Apps
+        if: steps.diff.outputs.deploy == 'true'
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          registryUrl: ${{ secrets.ACR_NAME }}.azurecr.io
+          containerAppName: ${{ secrets.PROJ_WRKL_WEB_ACA_NAME }}
+          resourceGroup: ${{ secrets.RG_NAME }}
+          imageToDeploy: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image.outputs.content_tag }}
+          environmentVariables: >
+            APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+            ASPNETCORE_ENVIRONMENT=${{ secrets.ASPNETCORE_ENVIRONMENT }}
+            AZURE_CLIENT_ID=${{ secrets.PROJ_WRKL_WEB_UAMI_CLIENT_ID }}
+            CVS_CONFIGURATION_FROM_AZURE_URL=${{ secrets.PROJ_WRKL_WEB_CONFIG_URL }}

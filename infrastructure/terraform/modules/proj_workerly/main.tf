@@ -105,8 +105,14 @@ resource "azurerm_role_assignment" "acr_pull_for_aca_workerly_web" {
   principal_id         = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
 }
 
+resource "azurerm_role_assignment" "role_blob_reader" {
+  scope                = var.configs_container_scope
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
+}
+
 resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_data_contributor_for_aca_workerly_web" {
-  name                = uuid()
+  name                = "dd6178e6-61ee-9e37-532c-150176a03012"
   resource_group_name = var.rg_name
   account_name        = var.cosmos_account_name
 

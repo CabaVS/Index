@@ -1,3 +1,5 @@
+using Aspire.Hosting.Azure;
+
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
 IResourceBuilder<ParameterResource> sqlPassword = builder.AddParameter("SqlPassword", secret: true);
@@ -5,6 +7,18 @@ IResourceBuilder<ParameterResource> keycloakOtelCollectorConfigFullPath = builde
 IResourceBuilder<ParameterResource> keycloakLogOutputFullPath = builder.AddParameter("KeycloakLogOutputFullPath", secret: true);
 IResourceBuilder<ParameterResource> keycloakUsername = builder.AddParameter("KeycloakUsername");
 IResourceBuilder<ParameterResource> keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true);
+
+IResourceBuilder<ParameterResource> configUrlForWrklWeb =
+    builder.AddParameter("config-url-for-project-workerly-web", true);
+
+IResourceBuilder<AzureStorageResource> azurite = builder.AddAzureStorage("stcvsidxlocal")
+    .RunAsEmulator(config => config
+        .WithBlobPort(27000)
+        .WithQueuePort(27001)
+        .WithTablePort(27002)
+        .WithDataVolume()
+        .WithLifetime(ContainerLifetime.Persistent));
+IResourceBuilder<AzureBlobStorageResource> blobsResource = azurite.AddBlobs("blobs");
 
 IResourceBuilder<AzureCosmosDBResource> cosmos = builder
     .AddAzureCosmosDB("cosmos-cvs-idx-local")
@@ -76,12 +90,9 @@ IResourceBuilder<KeycloakResource> keycloak = builder
 
 builder.AddProject<Projects.CabaVS_Workerly_Web>("ca-cvs-idx-workerly-local")
     .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-    .WithEnvironment("Cosmos__Database", "workerly")
-    .WithEnvironment("Cosmos__Containers__Users", "users")
-    .WithEnvironment("Cosmos__Containers__Workspaces", "workspaces")
-    .WithEnvironment("Cosmos__Containers__WorkspaceConfigs", "workspaceConfigs")
-    .WithEnvironment("Cosmos__Containers__Memberships", "memberships")
+    .WithEnvironment("CVS_CONFIGURATION_FROM_AZURE_URL", configUrlForWrklWeb)
     .WithReference(keycloak).WaitFor(keycloak)
-    .WithReference(cosmos).WaitFor(cosmos);
+    .WithReference(cosmos).WaitFor(cosmos)
+    .WithReference(blobsResource, "BlobStorage").WaitFor(blobsResource);
 
 await builder.Build().RunAsync();

@@ -6,6 +6,10 @@ variable "location" {
   type = string
 }
 
+variable "configs_container_scope" {
+  type = string
+}
+
 variable "cosmos_account_id" {
   type = string
 }

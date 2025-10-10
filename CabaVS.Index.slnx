@@ -7,10 +7,12 @@
   </Folder>
   <Folder Name="/Docker/">
     <File Path="proj.identityserver.keycloak.Dockerfile" />
+    <File Path="proj.workerly.web.Dockerfile" />
   </Folder>
   <Folder Name="/GitHub Workflows/">
     <File Path=".github\workflows\infrastructure.yml" />
     <File Path=".github\workflows\proj_identityserver.yml" />
+    <File Path=".github\workflows\proj_workerly_web.yml" />
   </Folder>
   <Folder Name="/Infrastructure/" />
   <Folder Name="/Infrastructure/Assets/">
@@ -50,6 +52,9 @@
   <Folder Name="/Projects/Workerly/">
     <Project Path="proj-workerly\src\CabaVS.Workerly.Shared\CabaVS.Workerly.Shared.csproj" Type="Classic C#" />
     <Project Path="proj-workerly\src\CabaVS.Workerly.Web\CabaVS.Workerly.Web.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="shared\CabaVS.Common.Infrastructure\CabaVS.Common.Infrastructure.csproj" Type="Classic C#" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
