@@ -4,4 +4,5 @@ output "appi_connection_string" { value = azurerm_application_insights.shared.co
 output "cae_id" { value = azurerm_container_app_environment.shared.id }
 output "acr_id" { value = azurerm_container_registry.shared.id }
 output "acr_login_server" { value = azurerm_container_registry.shared.login_server }
+output "cosmos_account_id" { value = azurerm_cosmosdb_account.cosmos.id }
 output "cosmos_account_name" { value = azurerm_cosmosdb_account.cosmos.name }

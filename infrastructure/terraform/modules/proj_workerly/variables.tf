@@ -6,6 +6,10 @@ variable "location" {
   type = string
 }
 
+variable "cosmos_account_id" {
+  type = string
+}
+
 variable "cosmos_account_name" {
   type = string
 }

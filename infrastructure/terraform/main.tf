@@ -46,6 +46,7 @@ module "proj_workerly" {
   source                   = "./modules/proj_workerly"
   rg_name                  = var.rg_name
   location                 = local.location
+  cosmos_account_id        = module.shared.cosmos_account_id
   cosmos_account_name      = module.shared.cosmos_account_name
   acr_id                   = module.shared.acr_id
   acr_login_server         = module.shared.acr_login_server

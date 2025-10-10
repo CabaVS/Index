@@ -105,8 +105,13 @@ resource "azurerm_role_assignment" "acr_pull_for_aca_workerly_web" {
   principal_id         = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
 }
 
-resource "azurerm_role_assignment" "cosmosdb_data_contributor_for_aca_workerly_web" {
-  scope                = azurerm_cosmosdb_sql_database.db.id
-  role_definition_name = "Cosmos DB Built-in Data Contributor"
-  principal_id         = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
+resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_data_contributor_for_aca_workerly_web" {
+  name                = uuid()
+  resource_group_name = var.rg_name
+  account_name        = var.cosmos_account_name
+
+  role_definition_id = "${var.cosmos_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+
+  scope        = azurerm_cosmosdb_sql_database.db.id
+  principal_id = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
 }
