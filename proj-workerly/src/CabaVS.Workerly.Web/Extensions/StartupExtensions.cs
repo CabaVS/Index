@@ -1,4 +1,5 @@
-﻿using CabaVS.Workerly.Web.Configuration;
+﻿using Azure.Identity;
+using CabaVS.Workerly.Web.Configuration;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 
@@ -49,11 +50,13 @@ internal static class StartupExtensions
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
                 }
             };
+
+            CosmosClient client;
             
-            // Some of those options are required because of the open issue
-            // https://github.com/dotnet/aspire/issues/5364
             if (env.IsDevelopment())
             {
+                // Some of those options are required because of the open issue
+                // https://github.com/dotnet/aspire/issues/5364
                 cosmosClientOptions.ConnectionMode = ConnectionMode.Gateway;
                 cosmosClientOptions.LimitToEndpoint = true;
                 cosmosClientOptions.HttpClientFactory = () =>
@@ -67,9 +70,13 @@ internal static class StartupExtensions
                     };
                     return new HttpClient(handler);
                 };
+                
+                client = new CosmosClient(opts.Endpoint, opts.Key, cosmosClientOptions);
             }
-            
-            var client = new CosmosClient(opts.Endpoint, opts.Key, cosmosClientOptions);
+            else
+            {
+                client = new CosmosClient(opts.Endpoint, new DefaultAzureCredential(), cosmosClientOptions);
+            }
 
             Database? db = client.GetDatabase(opts.Database);
 
