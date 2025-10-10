@@ -9,8 +9,7 @@ on:
       - 'global.json'
       - '.github/workflows/proj_workerly_web.yml'
       - './shared/**'
-      - './proj-workerly/src/CabaVS.Workerly.Shared'
-      - './proj-workerly/src/CabaVS.Workerly.Web'
+      - './proj-workerly/**'
       - './proj.workerly.web.Dockerfile'
   workflow_dispatch:
 
@@ -22,7 +21,7 @@ env:
   BUILD_CONFIGURATION: "Release"
   DOCKER_IMAGE_NAME: "workerly-web"
   DOCKERFILE_PATH: "./proj.workerly.web.Dockerfile"
-  PATH_TO_CSPROJ: "./proj-workerly/src/CabaVS.Workerly.Web.csproj"
+  PATH_TO_CSPROJ: "./proj-workerly/src/CabaVS.Workerly.Web/CabaVS.Workerly.Web.csproj"
   PATH_TO_GLOBAL_JSON: "./global.json"
 
 jobs:
