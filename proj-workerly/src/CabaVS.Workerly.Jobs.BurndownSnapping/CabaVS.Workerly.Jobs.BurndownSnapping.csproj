@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\shared\CabaVS.Common.Infrastructure\CabaVS.Common.Infrastructure.csproj" />
+      <ProjectReference Include="..\CabaVS.Workerly.Shared\CabaVS.Workerly.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" />
+      <PackageReference Include="Microsoft.Azure.Cosmos" />
+      <PackageReference Include="OpenTelemetry" />
+      <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+      <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+      <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+      <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+      <PackageReference Include="Serilog" />
+      <PackageReference Include="Serilog.Extensions.Hosting" />
+      <PackageReference Include="Serilog.Settings.Configuration" />
+      <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
+      <PackageReference Include="Serilog.Sinks.Console" />
+      <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
+    </ItemGroup>
+
+</Project>

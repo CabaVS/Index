@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using CabaVS.Workerly.Web.Entities;
-using CabaVS.Workerly.Web.Models;
+using CabaVS.Workerly.Shared.Entities;
+using CabaVS.Workerly.Shared.Models;
+using CabaVS.Workerly.Shared.Persistence;
 using CabaVS.Workerly.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;

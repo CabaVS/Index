@@ -1,8 +1,8 @@
-﻿using CabaVS.Workerly.Web.Entities;
+﻿using CabaVS.Workerly.Shared.Entities;
 
-namespace CabaVS.Workerly.Web.Services;
+namespace CabaVS.Workerly.Shared.Persistence;
 
-internal interface IUserService
+public interface IUserService
 {
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
     Task EnsureExistsAsync(User user, CancellationToken ct);

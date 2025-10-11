@@ -1,5 +1,5 @@
-﻿using Azure.Identity;
-using CabaVS.Workerly.Web.Configuration;
+﻿using CabaVS.Workerly.Shared.Configuration;
+using CabaVS.Workerly.Shared.Persistence;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 
@@ -7,93 +7,6 @@ namespace CabaVS.Workerly.Web.Extensions;
 
 internal static class StartupExtensions
 {
-    public static void TryConfigureCosmosDbForLocalDevelopment(this WebApplicationBuilder builder)
-    {
-        if (!builder.Environment.IsDevelopment())
-        {
-            return;
-        }
-    
-        var cs = builder.Configuration.GetConnectionString("cosmos-cvs-idx-local");
-        if (string.IsNullOrWhiteSpace(cs))
-        {
-            return;
-        }
-    
-        var parts = cs
-            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(p =>
-            {
-                var idx = p.IndexOf('=', StringComparison.OrdinalIgnoreCase);
-                return new { Key = p[..idx], Value = p[(idx + 1)..] };
-            })
-            .ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
-
-        builder.Configuration["Cosmos:Endpoint"] = parts["AccountEndpoint"];
-        builder.Configuration["Cosmos:Key"] = parts["AccountKey"];
-    }
-    
-    public static IServiceCollection AddCosmos(this IServiceCollection services, IConfiguration cfg, IWebHostEnvironment env)
-    {
-        services.Configure<CosmosOptions>(cfg.GetSection("Cosmos"));
-
-        services.AddSingleton(sp =>
-        {
-            CosmosOptions opts = sp.GetRequiredService<IOptions<CosmosOptions>>().Value;
-
-            var cosmosClientOptions = new CosmosClientOptions
-            {
-                AllowBulkExecution = true,
-                ApplicationName = $"Workerly-Web-{env.EnvironmentName}",
-                SerializerOptions = new CosmosSerializationOptions
-                {
-                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-                }
-            };
-
-            CosmosClient client;
-            
-            if (env.IsDevelopment())
-            {
-                // Some of those options are required because of the open issue
-                // https://github.com/dotnet/aspire/issues/5364
-                cosmosClientOptions.ConnectionMode = ConnectionMode.Gateway;
-                cosmosClientOptions.LimitToEndpoint = true;
-                cosmosClientOptions.HttpClientFactory = () =>
-                {
-                    var handler = new HttpClientHandler
-                    {
-#pragma warning disable S4830
-                        ServerCertificateCustomValidationCallback =
-#pragma warning restore S4830
-                            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                    };
-                    return new HttpClient(handler);
-                };
-                
-                client = new CosmosClient(opts.Endpoint, opts.Key, cosmosClientOptions);
-            }
-            else
-            {
-                client = new CosmosClient(opts.Endpoint, new DefaultAzureCredential(), cosmosClientOptions);
-            }
-
-            Database? db = client.GetDatabase(opts.Database);
-
-            return new CosmosContext
-            {
-                Client = client,
-                Database = db,
-                Users = db.GetContainer(opts.Containers.Users),
-                Workspaces = db.GetContainer(opts.Containers.Workspaces),
-                WorkspaceConfigs = db.GetContainer(opts.Containers.WorkspaceConfigs),
-                Memberships = db.GetContainer(opts.Containers.Memberships)
-            };
-        });
-
-        return services;
-    }
-    
     public static async Task EnsureCosmosArtifactsAsync(this IServiceProvider sp, CancellationToken ct = default)
     {
         CosmosContext ctx = sp.GetRequiredService<CosmosContext>();

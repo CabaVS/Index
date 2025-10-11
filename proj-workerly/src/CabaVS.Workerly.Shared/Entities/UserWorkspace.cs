@@ -1,6 +1,6 @@
-﻿namespace CabaVS.Workerly.Web.Entities;
+﻿namespace CabaVS.Workerly.Shared.Entities;
 
-internal sealed class UserWorkspace
+public sealed class UserWorkspace
 {
     public string Id => $"{UserId}:{WorkspaceId}";
     

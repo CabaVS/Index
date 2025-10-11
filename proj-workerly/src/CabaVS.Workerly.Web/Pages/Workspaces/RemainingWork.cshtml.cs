@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
+using CabaVS.Workerly.Shared.Entities;
 using CabaVS.Workerly.Shared.Models;
+using CabaVS.Workerly.Shared.Persistence;
 using CabaVS.Workerly.Shared.Services;
-using CabaVS.Workerly.Web.Entities;
-using CabaVS.Workerly.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;

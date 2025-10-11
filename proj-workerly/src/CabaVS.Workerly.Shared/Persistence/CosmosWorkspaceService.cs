@@ -1,10 +1,10 @@
-﻿using CabaVS.Workerly.Web.Configuration;
-using CabaVS.Workerly.Web.Entities;
-using CabaVS.Workerly.Web.Models;
+﻿using CabaVS.Workerly.Shared.Entities;
+using CabaVS.Workerly.Shared.Models;
 using Microsoft.Azure.Cosmos;
-using User = CabaVS.Workerly.Web.Entities.User;
+using Microsoft.Extensions.Logging;
+using User = CabaVS.Workerly.Shared.Entities.User;
 
-namespace CabaVS.Workerly.Web.Services;
+namespace CabaVS.Workerly.Shared.Persistence;
 
 internal sealed class CosmosWorkspaceService(ILogger<CosmosWorkspaceService> logger, CosmosContext ctx) : IWorkspaceService
 {

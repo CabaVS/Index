@@ -1,5 +1,5 @@
 ﻿using System.Security.Claims;
-using CabaVS.Workerly.Web.Entities;
+using CabaVS.Workerly.Shared.Entities;
 
 namespace CabaVS.Workerly.Web.Services;
 

@@ -95,4 +95,11 @@ builder.AddProject<Projects.CabaVS_Workerly_Web>("ca-cvs-idx-workerly-local")
     .WithReference(cosmos).WaitFor(cosmos)
     .WithReference(blobsResource, "BlobStorage").WaitFor(blobsResource);
 
+builder.AddProject<Projects.CabaVS_Workerly_Jobs_BurndownSnapping>("caj-cvs-idx-workerly-burndown-local")
+    .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
+    .WithEnvironment("CVS_CONFIGURATION_FROM_AZURE_URL", configUrlForWrklWeb)
+    .WithReference(cosmos).WaitFor(cosmos)
+    .WithReference(blobsResource, "BlobStorage").WaitFor(blobsResource)
+    .WithExplicitStart();
+
 await builder.Build().RunAsync();

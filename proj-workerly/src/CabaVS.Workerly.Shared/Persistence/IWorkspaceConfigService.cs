@@ -1,12 +1,12 @@
-﻿using CabaVS.Workerly.Shared.Models;
-using CabaVS.Workerly.Web.Entities;
+﻿using CabaVS.Workerly.Shared.Entities;
+using CabaVS.Workerly.Shared.Models;
 
-namespace CabaVS.Workerly.Web.Services;
+namespace CabaVS.Workerly.Shared.Persistence;
 
-internal enum SaveConnectionResult { Success, Forbidden, Invalid, Error }
-internal enum SaveTeamsResult { Success, Forbidden, Invalid, Error }
+public enum SaveConnectionResult { Success, Forbidden, Invalid, Error }
+public enum SaveTeamsResult { Success, Forbidden, Invalid, Error }
 
-internal interface IWorkspaceConfigService
+public interface IWorkspaceConfigService
 {
     Task<WorkspaceConnection?> GetAsync(Guid workspaceId, CancellationToken ct);
     Task<SaveConnectionResult> UpsertAsync(Guid requesterUserId, Guid workspaceId,

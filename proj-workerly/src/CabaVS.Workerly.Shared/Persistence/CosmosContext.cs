@@ -1,8 +1,8 @@
 ﻿using Microsoft.Azure.Cosmos;
 
-namespace CabaVS.Workerly.Web.Configuration;
+namespace CabaVS.Workerly.Shared.Persistence;
 
-internal sealed class CosmosContext
+public sealed class CosmosContext
 {
     public required CosmosClient Client { get; init; }
     public required Database Database { get; init; }

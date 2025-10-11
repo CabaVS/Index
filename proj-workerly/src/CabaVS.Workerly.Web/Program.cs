@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using CabaVS.Common.Infrastructure.ConfigurationProviders;
+using CabaVS.Workerly.Shared;
+using CabaVS.Workerly.Shared.Entities;
+using CabaVS.Workerly.Shared.Persistence;
 using CabaVS.Workerly.Shared.Services;
 using CabaVS.Workerly.Web.Configuration;
-using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Extensions;
 using CabaVS.Workerly.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -35,8 +37,13 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Azure Cosmos DB
-builder.TryConfigureCosmosDbForLocalDevelopment();
-builder.Services.AddCosmos(builder.Configuration, builder.Environment);
+builder.Services.AddCosmosPersistenceServices(
+    builder.Configuration,
+    builder.Environment.IsDevelopment(),
+    builder.Environment.EnvironmentName);
+builder.Services.TryConfigureCosmosDbForLocalDevelopment(
+    builder.Configuration,
+    builder.Environment.IsDevelopment());
 
 // Auth
 builder.Services
@@ -168,9 +175,6 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddScoped<AzureDevOpsIntegrationService>();
 builder.Services.AddScoped<CurrentUserProvider>();
-builder.Services.AddScoped<IWorkspaceService, CosmosWorkspaceService>();
-builder.Services.AddScoped<IWorkspaceConfigService, CosmosWorkspaceConfigService>();
-builder.Services.AddScoped<IUserService, CosmosUserService>();
 
 builder.Services.AddHttpContextAccessor();
 

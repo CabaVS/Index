@@ -16,6 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\proj-workerly\src\CabaVS.Workerly.Jobs.BurndownSnapping\CabaVS.Workerly.Jobs.BurndownSnapping.csproj" />
       <ProjectReference Include="..\..\proj-workerly\src\CabaVS.Workerly.Web\CabaVS.Workerly.Web.csproj" />
     </ItemGroup>
 

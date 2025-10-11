@@ -1,8 +1,8 @@
-﻿using CabaVS.Workerly.Web.Models;
+﻿using CabaVS.Workerly.Shared.Models;
 
-namespace CabaVS.Workerly.Web.Services;
+namespace CabaVS.Workerly.Shared.Persistence;
 
-internal interface IWorkspaceService
+public interface IWorkspaceService
 {
     Task<IReadOnlyList<WorkspaceListItem>> GetForUserAsync(Guid userId, CancellationToken ct);
     Task SetSelectedAsync(Guid userId, Guid workspaceId, CancellationToken ct);
@@ -10,4 +10,4 @@ internal interface IWorkspaceService
     Task<InviteUserResult> InviteUserByEmailAsync(Guid inviterUserId, Guid workspaceId, string email, CancellationToken ct);
 }
 
-internal enum InviteUserResult { Success, UserNotFound, AlreadyMember, Forbidden, Error }
+public enum InviteUserResult { Success, UserNotFound, AlreadyMember, Forbidden, Error }

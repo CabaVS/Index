@@ -1,8 +1,8 @@
 ﻿using CabaVS.Workerly.Shared.Models;
 
-namespace CabaVS.Workerly.Web.Entities;
+namespace CabaVS.Workerly.Shared.Entities;
 
-internal sealed class WorkspaceConnection
+public sealed class WorkspaceConnection
 {
     public string Id => WorkspaceId.ToString();
     public Guid WorkspaceId { get; set; }
