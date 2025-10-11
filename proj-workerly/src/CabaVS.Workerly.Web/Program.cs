@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using CabaVS.Common.Infrastructure.ConfigurationProviders;
+using CabaVS.Workerly.Shared.Services;
 using CabaVS.Workerly.Web.Configuration;
 using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Extensions;
@@ -165,6 +166,7 @@ builder.Services.AddSingleton(sp =>
     return client ?? throw new InvalidOperationException("Failed to create WorkItemTrackingHttpClient.");
 });
 
+builder.Services.AddScoped<AzureDevOpsIntegrationService>();
 builder.Services.AddScoped<CurrentUserProvider>();
 builder.Services.AddScoped<IWorkspaceService, CosmosWorkspaceService>();
 builder.Services.AddScoped<IWorkspaceConfigService, CosmosWorkspaceConfigService>();

@@ -1,4 +1,6 @@
-﻿namespace CabaVS.Workerly.Web.Entities;
+﻿using CabaVS.Workerly.Shared.Models;
+
+namespace CabaVS.Workerly.Web.Entities;
 
 internal sealed class WorkspaceConnection
 {
@@ -10,5 +12,3 @@ internal sealed class WorkspaceConnection
 
     public TeamsDefinition TeamsDefinition { get; set; } = new([]);
 }
-
-internal sealed record TeamsDefinition(Dictionary<string, HashSet<string>> Teams);

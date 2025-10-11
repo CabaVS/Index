@@ -1,4 +1,5 @@
-﻿using CabaVS.Workerly.Web.Configuration;
+﻿using CabaVS.Workerly.Shared.Models;
+using CabaVS.Workerly.Web.Configuration;
 using CabaVS.Workerly.Web.Entities;
 using Microsoft.Azure.Cosmos;
 

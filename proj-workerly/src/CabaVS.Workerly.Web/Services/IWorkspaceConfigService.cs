@@ -1,4 +1,5 @@
-﻿using CabaVS.Workerly.Web.Entities;
+﻿using CabaVS.Workerly.Shared.Models;
+using CabaVS.Workerly.Web.Entities;
 
 namespace CabaVS.Workerly.Web.Services;
 

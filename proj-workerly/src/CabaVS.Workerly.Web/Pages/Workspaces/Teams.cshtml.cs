@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using CabaVS.Workerly.Shared.Models;
 using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Models;
 using CabaVS.Workerly.Web.Services;

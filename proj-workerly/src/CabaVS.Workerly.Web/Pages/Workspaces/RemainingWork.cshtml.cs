@@ -1,13 +1,11 @@
-﻿using System.Globalization;
-using System.Text.Json;
+﻿using System.Text.Json;
 using CabaVS.Workerly.Shared.Models;
-using CabaVS.Workerly.Web.Constants;
+using CabaVS.Workerly.Shared.Services;
 using CabaVS.Workerly.Web.Entities;
 using CabaVS.Workerly.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
-using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
 
@@ -15,6 +13,7 @@ namespace CabaVS.Workerly.Web.Pages.Workspaces;
 
 internal sealed class RemainingWork(
     ILogger<RemainingWork> logger,
+    AzureDevOpsIntegrationService azureDevOpsIntegrationService,
     IWorkspaceConfigService configService) : PageModel
 {
     private static readonly JsonSerializerOptions JsonSerializerOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -65,12 +64,13 @@ internal sealed class RemainingWork(
             using WorkItemTrackingHttpClient client = await connection.GetClientAsync<WorkItemTrackingHttpClient>(ct);
 
             // Compute
-            Snapshot snapshot = await ComputeAsync(InputWorkItemId!.Value, client, config.TeamsDefinition, ct);
+            RemainingWorkSnapshot remainingWorkSnapshot = await azureDevOpsIntegrationService
+                .ComputeRemainingWorkSnapshotAsync(client, InputWorkItemId!.Value, config.TeamsDefinition, ct);
 
-            WorkItemId = snapshot.Root?.Id ?? InputWorkItemId;
-            WorkItemTitle = snapshot.Root?.Title ?? string.Empty;
-            ExecutionDateUtc = snapshot.Root?.ExecutionDateUtc ?? DateTime.UtcNow;
-            SnapshotJson = JsonSerializer.Serialize(snapshot, JsonSerializerOptions);
+            WorkItemId = remainingWorkSnapshot.Root?.Id ?? InputWorkItemId;
+            WorkItemTitle = remainingWorkSnapshot.Root?.Title ?? string.Empty;
+            ExecutionDateUtc = remainingWorkSnapshot.Root?.ExecutionDateUtc ?? DateTime.UtcNow;
+            SnapshotJson = JsonSerializer.Serialize(remainingWorkSnapshot, JsonSerializerOptions);
 
             logger.LogInformation("RemainingWork computed for WI {WorkItemId} in workspace {WorkspaceId}",
                 WorkItemId, WorkspaceId);
@@ -85,121 +85,4 @@ internal sealed class RemainingWork(
             return Page();
         }
     }
-    
-    private static async Task<Snapshot> ComputeAsync(
-        int workItemId,
-        WorkItemTrackingHttpClient workItemClient,
-        TeamsDefinition teamsDefinitionOptions,
-        CancellationToken cancellationToken)
-    {
-        WorkItem? root = await workItemClient.GetWorkItemAsync(
-            workItemId,
-            fields: [FieldNames.Title],
-            cancellationToken: cancellationToken);
-
-        if (root is null)
-        {
-            return new Snapshot(null, []);
-        }
-
-        var toTraverse = new HashSet<int> { root.Id!.Value };
-        var collected = new List<WorkItem>();
-
-        do
-        {
-            var currentBatch = (await Task.WhenAll(toTraverse
-                    .Chunk(200)
-                    .Select(batch => workItemClient.GetWorkItemsAsync(
-                        ids: batch,
-                        expand: WorkItemExpand.Relations,
-                        errorPolicy: WorkItemErrorPolicy.Omit,
-                        cancellationToken: cancellationToken))))
-                .SelectMany(x => x)
-                .DistinctBy(x => x.Id)
-                .ToList();
-
-            IEnumerable<WorkItem> tasksOrBugs = currentBatch
-                .Where(wi =>
-                    wi.Fields.GetCastedValueOrDefault(FieldNames.WorkItemType, string.Empty) is "Task" or "Bug")
-                .ToArray();
-            IEnumerable<WorkItem> otherTypes = currentBatch
-                .ExceptBy(tasksOrBugs.Select(wi => wi.Id), wi => wi.Id)
-                .ToArray();
-
-            collected.AddRange(
-                tasksOrBugs
-                    .Where(wi =>
-                        wi.Fields.GetCastedValueOrDefault(FieldNames.State, string.Empty) is not "Closed"
-                            and not "Removed"));
-
-            toTraverse = otherTypes
-                .Where(wi => wi.Relations is { Count: > 0 })
-                .SelectMany(wi => wi.Relations)
-                .Where(r => r.Rel == RelationshipNames.ParentToChild)
-                .Select(r => int.Parse(r.Url.Split('/').LastOrDefault() ?? string.Empty, CultureInfo.InvariantCulture))
-                .ToHashSet();
-
-        } while (toTraverse.Count > 0);
-
-        var groupedByAssignee = collected
-            .Select(wi =>
-            {
-                var tags = wi.Fields.GetCastedValueOrDefault(FieldNames.Tags, string.Empty)?
-                    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
-
-                return new
-                {
-                    Assignee = wi.Fields.GetValueOrDefault(FieldNames.AssignedTo) is IdentityRef identityRef
-                        ? identityRef.UniqueName.Split('@').FirstOrDefault(string.Empty)
-                        : string.Empty,
-                    RemainingWork = wi.Fields.GetCastedValueOrDefault(FieldNames.RemainingWork, 0.0),
-                    RemainingWorkType = tags.DetermineFromTags()
-                };
-            })
-            .GroupBy(x => x.Assignee)
-            .Select(g =>
-            {
-                var lookupByType = g.ToLookup(x => x.RemainingWorkType);
-                return new
-                {
-                    Assignee = string.IsNullOrWhiteSpace(g.Key) ? "UNKNOWN ASSIGNEE" : g.Key.ToUpperInvariant(),
-                    TotalRemainingWork = new RemainingWorkModel(
-                        lookupByType[RemainingWorkType.Functionality].Sum(x => x.RemainingWork),
-                        lookupByType[RemainingWorkType.Requirements].Sum(x => x.RemainingWork),
-                        lookupByType[RemainingWorkType.ReleaseFinalization].Sum(x => x.RemainingWork),
-                        lookupByType[RemainingWorkType.Technical].Sum(x => x.RemainingWork),
-                        lookupByType[RemainingWorkType.Other].Sum(x => x.RemainingWork))
-                };
-            })
-            .OrderByDescending(x => x.TotalRemainingWork)
-            .ThenBy(x => x.Assignee);
-
-        RemainingWorkResponseItem[] groupedByTeam = groupedByAssignee
-            .Select(x => new RemainingWorkResponseItem(
-                teamsDefinitionOptions.Teams.SingleOrDefault(
-                    y => y.Value.Contains(x.Assignee),
-                    new KeyValuePair<string, HashSet<string>>($"UNKNOWN TEAM on {x.Assignee}", [])).Key,
-                x.TotalRemainingWork))
-            .GroupBy(x => x.Team)
-            .Select(g =>
-            {
-                var team = g.Key.ToUpperInvariant()
-                    .Replace("UNKNOWN TEAM ON UNKNOWN ASSIGNEE", "UNASSIGNED", StringComparison.Ordinal); 
-                return new RemainingWorkResponseItem(
-                    team,
-                    g.Select(x => x.RemainingWork).Sum());
-            })
-            .OrderByDescending(x => x.RemainingWork)
-            .ThenBy(x => x.Team)
-            .ToArray();
-
-        return new Snapshot(
-            new Root(root.Id!.Value, 
-                root.Fields.GetCastedValueOrDefault(FieldNames.Title, string.Empty),
-                DateTime.UtcNow),
-            groupedByTeam);
-    }
-    
-    private sealed record Snapshot(Root? Root, RemainingWorkResponseItem[] Report);
-    private sealed record Root(int Id, string Title, DateTime ExecutionDateUtc);
 }

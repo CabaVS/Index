@@ -1,6 +1,6 @@
-﻿namespace CabaVS.Workerly.Web.Constants;
+﻿namespace CabaVS.Workerly.Shared.Constants;
 
-internal static class FieldNames
+public static class FieldNames
 {
     public const string AssignedTo = "System.AssignedTo";
     public const string RemainingWork = "Microsoft.VSTS.Scheduling.RemainingWork";

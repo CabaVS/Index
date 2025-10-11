@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
+using CabaVS.Workerly.Shared.Constants;
 using CabaVS.Workerly.Shared.Models;
 using CabaVS.Workerly.Web.Configuration;
-using CabaVS.Workerly.Web.Constants;
 using Microsoft.Extensions.Options;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
