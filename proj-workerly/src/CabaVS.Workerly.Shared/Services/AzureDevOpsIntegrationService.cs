@@ -11,7 +11,7 @@ namespace CabaVS.Workerly.Shared.Services;
 
 public sealed class AzureDevOpsIntegrationService(ILogger<AzureDevOpsIntegrationService> logger)
 {
-    public async Task<RemainingWorkSnapshot> ComputeRemainingWorkSnapshotAsync(
+    public async Task<RemainingWorkResponse?> ComputeRemainingWorkSnapshotAsync(
         WorkItemTrackingHttpClient workItemClient,
         int workItemId,
         TeamsDefinition teamsDefinitionOptions,
@@ -27,7 +27,7 @@ public sealed class AzureDevOpsIntegrationService(ILogger<AzureDevOpsIntegration
         if (root is null)
         {
             logger.LogWarning("Root work item not found. WorkItemId: {WorkItemId}", workItemId);
-            return new RemainingWorkSnapshot(null, []);
+            return null;
         }
         
         logger.LogInformation("Starting traversal for remaining work. Root WorkItemId: {WorkItemId}", workItemId);
@@ -132,10 +132,9 @@ public sealed class AzureDevOpsIntegrationService(ILogger<AzureDevOpsIntegration
         
         logger.LogInformation("Remaining work processing completed for WorkItemId: {WorkItemId}", workItemId);
 
-        return new RemainingWorkSnapshot(
-            new Root(root.Id!.Value, 
-                root.Fields.GetCastedValueOrDefault(FieldNames.Title, string.Empty),
-                DateTime.UtcNow),
+        return new RemainingWorkResponse(
+            root.Id.GetValueOrDefault(),
+            root.Fields.GetCastedValueOrDefault(FieldNames.Title, string.Empty),
             groupedByTeam);
     }
 }

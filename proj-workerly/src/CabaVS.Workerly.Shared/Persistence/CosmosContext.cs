@@ -10,4 +10,5 @@ public sealed class CosmosContext
     public required Container Workspaces { get; init; }
     public required Container WorkspaceConfigs { get; init; }
     public required Container Memberships { get; init; }
+    public required Container RemainingWorkSnapshots { get; init; }
 }

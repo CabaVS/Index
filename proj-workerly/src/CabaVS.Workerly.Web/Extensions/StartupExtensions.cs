@@ -17,6 +17,7 @@ internal static class StartupExtensions
         var cWs = cfg.Containers.Workspaces;
         var cWsCfg = cfg.Containers.WorkspaceConfigs;
         var cMembers = cfg.Containers.Memberships;
+        var cSnapshots = cfg.Containers.RemainingWorkSnapshots;
         
         DatabaseResponse? dbResp = await ctx.Client.CreateDatabaseIfNotExistsAsync(dbName, cancellationToken: ct);
         Database? db = dbResp.Database;
@@ -38,5 +39,8 @@ internal static class StartupExtensions
         
         var memProps = new ContainerProperties(id: cMembers, partitionKeyPath: "/workspaceId");
         await db.CreateContainerIfNotExistsAsync(memProps, cancellationToken: ct);
+        
+        var snapProps = new ContainerProperties(id: cSnapshots, partitionKeyPath: "/workspaceId");
+        await db.CreateContainerIfNotExistsAsync(snapProps, cancellationToken: ct);
     }
 }

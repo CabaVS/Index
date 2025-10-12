@@ -64,11 +64,23 @@ internal sealed class RemainingWork(
             using WorkItemTrackingHttpClient client = await connection.GetClientAsync<WorkItemTrackingHttpClient>(ct);
 
             // Compute
-            RemainingWorkSnapshot remainingWorkSnapshot = await azureDevOpsIntegrationService
+            RemainingWorkResponse? response = await azureDevOpsIntegrationService
                 .ComputeRemainingWorkSnapshotAsync(client, InputWorkItemId!.Value, config.TeamsDefinition, ct);
+            if (response is null)
+            {
+                logger.LogWarning(
+                    "RemainingWork computed for WI {WorkItemId} in workspace {WorkspaceId} returned empty response.",
+                    InputWorkItemId, WorkspaceId);
+                return Page();
+            }
+            
+            var remainingWorkSnapshot = new RemainingWorkSnapshot(
+                new Root(
+                    WorkspaceId, response.Id, response.Title, DateTime.UtcNow),
+                response.Report);
 
-            WorkItemId = remainingWorkSnapshot.Root?.Id ?? InputWorkItemId;
-            WorkItemTitle = remainingWorkSnapshot.Root?.Title ?? string.Empty;
+            WorkItemId = remainingWorkSnapshot.Root?.WorkItemId ?? InputWorkItemId;
+            WorkItemTitle = remainingWorkSnapshot.Root?.WorkItemTitle ?? string.Empty;
             ExecutionDateUtc = remainingWorkSnapshot.Root?.ExecutionDateUtc ?? DateTime.UtcNow;
             SnapshotJson = JsonSerializer.Serialize(remainingWorkSnapshot, JsonSerializerOptions);
 

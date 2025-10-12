@@ -13,5 +13,6 @@ public sealed class CosmosOptions
         public string Workspaces { get; set; } = "";
         public string WorkspaceConfigs { get; set; } = "";
         public string Memberships { get; set; } = "";
+        public string RemainingWorkSnapshots { get; set; } = "";
     }
 }

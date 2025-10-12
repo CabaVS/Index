@@ -70,14 +70,16 @@ public static class DependencyInjection
                 Users = db.GetContainer(opts.Containers.Users),
                 Workspaces = db.GetContainer(opts.Containers.Workspaces),
                 WorkspaceConfigs = db.GetContainer(opts.Containers.WorkspaceConfigs),
-                Memberships = db.GetContainer(opts.Containers.Memberships)
+                Memberships = db.GetContainer(opts.Containers.Memberships),
+                RemainingWorkSnapshots = db.GetContainer(opts.Containers.RemainingWorkSnapshots)
             };
         });
         
         services
             .AddScoped<IWorkspaceService, CosmosWorkspaceService>()
             .AddScoped<IWorkspaceConfigService, CosmosWorkspaceConfigService>()
-            .AddScoped<IUserService, CosmosUserService>();
+            .AddScoped<IUserService, CosmosUserService>()
+            .AddScoped<IRemainingWorkSnapshotService, CosmosRemainingWorkSnapshotService>();
 
         return services;
     }

@@ -30,6 +30,7 @@ internal sealed class Application(
         
         using IServiceScope scope = scopeFactory.CreateScope();
         IWorkspaceConfigService configService = scope.ServiceProvider.GetRequiredService<IWorkspaceConfigService>();
+        IRemainingWorkSnapshotService remainingWorkSnapshotService = scope.ServiceProvider.GetRequiredService<IRemainingWorkSnapshotService>();
         AzureDevOpsIntegrationService azureDevOpsIntegrationService = scope.ServiceProvider.GetRequiredService<AzureDevOpsIntegrationService>();
         
         RemainingWorkTrackerOptions.ToTrackItem[] itemsToTrack = options.Value.ToTrackItems;
@@ -55,15 +56,21 @@ internal sealed class Application(
                 new VssBasicCredential(string.Empty, config.PersonalAccessToken));
             using WorkItemTrackingHttpClient client = await connection.GetClientAsync<WorkItemTrackingHttpClient>(cancellationToken);
 
-            RemainingWorkSnapshot snapshot = await azureDevOpsIntegrationService.ComputeRemainingWorkSnapshotAsync(
+            RemainingWorkResponse? response = await azureDevOpsIntegrationService.ComputeRemainingWorkSnapshotAsync(
                 client, item.WorkItemId, config.TeamsDefinition, cancellationToken);
-            if (snapshot.Root is null)
+            if (response is null)
             {
                 logger.LogError("Failed to get remaining work for item {WorkItemId} from {From} to {To}.", item.WorkItemId, item.From, item.To);
                 continue;
             }
             
+            var snapshot = new RemainingWorkSnapshot(
+                new Root(options.Value.WorkspaceId, response.Id, response.Title, DateTime.UtcNow),
+                response.Report);
             logger.LogInformation("Snapshot computation successful for item {WorkItemId}. Proceeding to persisting.", item.WorkItemId);
+            
+            var persistedId = await remainingWorkSnapshotService.CreateAsync(options.Value.WorkspaceId, snapshot, cancellationToken);
+            logger.LogInformation("Snapshot persisted with Id {SnapshotId}.", persistedId);
         }
         
         logger.LogInformation("Remaining Work Tracker finished at {Timestamp} UTC.", DateTime.UtcNow);
