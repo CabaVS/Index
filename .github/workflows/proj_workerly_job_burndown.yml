@@ -8,9 +8,9 @@ on:
       - 'Directory.Packages.props'
       - 'global.json'
       - '.github/workflows/proj_workerly_web.yml'
-      - './shared/**'
-      - './proj-workerly/**'
-      - './proj.workerly.job.burndown.Dockerfile'
+      - 'shared/**'
+      - 'proj-workerly/**'
+      - 'proj.workerly.job.burndown.Dockerfile'
   workflow_dispatch:
 
 concurrency:
