@@ -1,0 +1,234 @@
+name: Deployment of the Project's job for Workerly (burndown snapping)
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.github/workflows/proj_workerly_web.yml'
+      - './shared/**'
+      - './proj-workerly/**'
+      - './proj.workerly.job.burndown.Dockerfile'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  BUILD_CONFIGURATION: "Release"
+  DOCKER_IMAGE_NAME: "workerly-job-burndown"
+  DOCKERFILE_PATH: "./proj.workerly.job.burndown.Dockerfile"
+  PATH_TO_CSPROJ: "./proj-workerly/src/CabaVS.Workerly.Jobs.BurndownSnapping/CabaVS.Workerly.Jobs.BurndownSnapping.csproj"
+  PATH_TO_GLOBAL_JSON: "./global.json"
+
+jobs:
+  build-job:
+    name: Build job
+    runs-on: ubuntu-latest
+    
+    outputs:
+      content_tag: ${{ steps.tagcalc.outputs.content_tag }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: ${{ env.PATH_TO_GLOBAL_JSON }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.PATH_TO_CSPROJ }}
+
+      - name: Build
+        run: |
+          dotnet build ${{ env.PATH_TO_CSPROJ }} \
+            --no-restore \
+            -c ${{ env.BUILD_CONFIGURATION }} \
+            -p:ContinuousIntegrationBuild=true \
+            -p:Deterministic=true \
+            -p:EnableSourceControlManagerQueries=false \
+            -p:IncludeSourceRevisionInInformationalVersion=false
+
+      - name: Publish
+        run: |
+          dotnet publish \
+            --no-build \
+            -c ${{ env.BUILD_CONFIGURATION }} \
+            -p:ReadyToRunDeterministic=true \
+            -p:EnableSourceControlManagerQueries=false \
+            -p:IncludeSourceRevisionInInformationalVersion=false \
+            -o ./publish \
+            ${{ env.PATH_TO_CSPROJ }}
+
+      - name: Compute publish-output tag
+        id: tagcalc
+        run: |
+          set -euo pipefail
+          CONTENT_HASH=$(
+            cd ./publish
+            find . -type f ! -name '*.pdb' -print0 \
+              | sort -z \
+              | xargs -0 sha256sum \
+              | sha256sum \
+              | awk '{print $1}'
+          )
+          echo "content_tag=${CONTENT_HASH:0:12}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-publish
+          path: ./publish
+
+  push-image-job:
+    environment: production
+    name: Push image to ACR
+    needs: [ build-job ]
+    runs-on: ubuntu-latest
+
+    outputs:
+      content_tag: ${{ needs.build-job.outputs.content_tag }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: job-publish
+          path: ./publish
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Docker Login to ACR
+        run: az acr login --name ${{ secrets.AZURE_ACR_NAME }}
+
+      - name: Check if content tag exists in ACR
+        id: exist
+        run: |
+          set -euo pipefail
+          REPO="${{ env.DOCKER_IMAGE_NAME }}"
+          TAG="${{ needs.build-job.outputs.content_tag }}"
+
+          if az acr repository show -n ${{ secrets.AZURE_ACR_NAME }} --repository "$REPO" >/dev/null 2>&1; then
+            EXISTS=$(az acr repository show-tags \
+              -n ${{ secrets.AZURE_ACR_NAME }} \
+              --repository "$REPO" \
+              --query "[?@=='$TAG'] | length(@)" -o tsv)
+          else
+            echo "Repository $REPO does not exist yet; will build & push."
+            EXISTS=0
+          fi
+
+          echo "exists=$EXISTS" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image (only if missing)
+        if: steps.exist.outputs.exists != '1'
+        run: |
+          docker build -f ${{ env.DOCKERFILE_PATH }} \
+            -t ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build-job.outputs.content_tag }} \
+            .
+
+      - name: Push image to ACR (only if missing)
+        if: steps.exist.outputs.exists != '1'
+        run: |
+          docker push ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.build-job.outputs.content_tag }}
+
+      - name: Point :latest at the content tag (no re-push)
+        run: |
+          set -euo pipefail
+          DIGEST=$(az acr manifest list-metadata \
+            -r ${{ secrets.AZURE_ACR_NAME }} \
+            -n ${{ env.DOCKER_IMAGE_NAME }} \
+            --query "[?tags[?@=='${{ needs.build-job.outputs.content_tag }}']].digest | [0]" -o tsv)
+          az acr import \
+            --name ${{ secrets.AZURE_ACR_NAME }} \
+            --source ${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}@${DIGEST} \
+            --image ${{ env.DOCKER_IMAGE_NAME }}:latest \
+            --force
+
+  deploy-to-aca-job:
+    environment: production
+    name: Deploy to Container Job
+    needs: [ push-image-job ]
+
+    # Using Windows runner and PowerShell because ACA Job env var updates via Azure CLI are unreliable on Linux/Bash runners.
+    # Verified 2025-08-08 after Linux/Bash path dropped env var values silently.
+    runs-on: windows-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure containerapp extension is current
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          az extension add --name containerapp --yes
+          az extension update --name containerapp
+          az version
+
+      - name: Determine if CAJ needs update
+        id: diff
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $jobName = "${{ secrets.WRKL_JOB_BURNDOWN_NAME }}"
+          $rg = "${{ secrets.AZURE_RG_NAME }}"
+          $desired = "${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image-job.outputs.content_tag }}"
+          $current = az containerapp job show --name $jobName --resource-group $rg --query "properties.template.containers[0].image" -o tsv
+          Write-Host "Current: $current"
+          Write-Host "Desired: $desired"
+          if ($current -eq $desired) {
+            "deploy=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            "deploy=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Update ACA Job (PowerShell quoting)
+        if: steps.diff.outputs.deploy == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $jobName = "${{ secrets.WRKL_JOB_BURNDOWN_NAME }}"
+          $rg = "${{ secrets.AZURE_RG_NAME }}"
+          $image = "${{ secrets.AZURE_ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ needs.push-image-job.outputs.content_tag }}"
+          $appInsights = "${{ secrets.AZURE_APPINSIGHTS_CONNECTION_STRING }}"
+          $clientId = "${{ secrets.WRKL_JOB_BURNDOWN_UAMI_CLIENT_ID }}"
+          $configUrl = "${{ secrets.WRKL_JOB_BURNDOWN_CONFIG_URL }}"
+          $envName = "${{ secrets.DOTNET_ENVIRONMENT }}"
+          az containerapp job update `
+            --name $jobName `
+            --resource-group $rg `
+            --image $image `
+            --set-env-vars `
+              APPLICATIONINSIGHTS_CONNECTION_STRING="$appInsights" `
+              AZURE_CLIENT_ID="$clientId" `
+              CVS_CONFIGURATION_FROM_AZURE_URL="$configUrl" `
+              DOTNET_ENVIRONMENT="$envName"

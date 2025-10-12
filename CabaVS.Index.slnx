@@ -8,11 +8,13 @@
   <Folder Name="/Docker/">
     <File Path="proj.identityserver.keycloak.Dockerfile" />
     <File Path="proj.workerly.web.Dockerfile" />
+    <File Path="proj.workerly.job.burndown.Dockerfile" />
   </Folder>
   <Folder Name="/GitHub Workflows/">
     <File Path=".github\workflows\infrastructure.yml" />
     <File Path=".github\workflows\proj_identityserver.yml" />
     <File Path=".github\workflows\proj_workerly_web.yml" />
+    <File Path=".github\workflows\proj_workerly_job_burndown.yml" />
   </Folder>
   <Folder Name="/Infrastructure/" />
   <Folder Name="/Infrastructure/Assets/">
