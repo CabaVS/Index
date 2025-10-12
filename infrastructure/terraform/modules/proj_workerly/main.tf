@@ -44,6 +44,15 @@ resource "azurerm_cosmosdb_sql_container" "memberships" {
   partition_key_paths = ["/workspaceId"]
 }
 
+resource "azurerm_cosmosdb_sql_container" "remaining_work_snapshots" {
+  name                = "remainingWorkSnapshots"
+  resource_group_name = var.rg_name
+  account_name        = var.cosmos_account_name
+  database_name       = azurerm_cosmosdb_sql_database.db.name
+
+  partition_key_paths = ["/workspaceId"]
+}
+
 resource "azurerm_container_app" "ca_workerly_web" {
   name                         = var.ca_name_for_workerly_web
   container_app_environment_id = var.cae_id
