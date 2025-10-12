@@ -121,3 +121,74 @@ resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_data_contributor_for_a
   scope        = "${var.cosmos_account_id}/dbs/${azurerm_cosmosdb_sql_database.db.name}"
   principal_id = azurerm_user_assigned_identity.uami_ca_workerly_web.principal_id
 }
+
+resource "azurerm_container_app_job" "caj_workerly_job_burndown" {
+  name                         = var.caj_name_for_workerly_burndown
+  container_app_environment_id = var.cae_id
+  resource_group_name          = var.rg_name
+  location                     = var.location
+
+  replica_timeout_in_seconds = 300
+  replica_retry_limit        = 0
+
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.uami_caj_workerly_burndown.id]
+  }
+
+  schedule_trigger_config {
+    cron_expression          = "0 0 * * 2-6"
+    parallelism              = 1
+    replica_completion_count = 1
+  }
+
+  template {
+    container {
+      name   = "job"
+      image  = "mcr.microsoft.com/k8se/quickstart-jobs:latest"
+      cpu    = 0.25
+      memory = "0.5Gi"
+    }
+  }
+
+  registry {
+    server   = var.acr_login_server
+    identity = azurerm_user_assigned_identity.uami_caj_workerly_burndown.id
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].container[0].env,
+      template[0].container[0].image
+    ]
+  }
+}
+
+resource "azurerm_user_assigned_identity" "uami_caj_workerly_burndown" {
+  name                = "uami-${var.caj_name_for_workerly_burndown}"
+  resource_group_name = var.rg_name
+  location            = var.location
+}
+
+resource "azurerm_role_assignment" "acr_pull_for_caj_workerly_burndown" {
+  scope                = var.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.uami_caj_workerly_burndown.principal_id
+}
+
+resource "azurerm_role_assignment" "role_blob_reader_for_caj_workerly_burndown" {
+  scope                = var.configs_container_scope
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azurerm_user_assigned_identity.uami_caj_workerly_burndown.principal_id
+}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "cosmosdb_data_contributor_for_caj_workerly_burndown" {
+  name                = "dd6178e6-61ee-9e37-532c-150176a03013"
+  resource_group_name = var.rg_name
+  account_name        = var.cosmos_account_name
+
+  role_definition_id = "${var.cosmos_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+
+  scope        = "${var.cosmos_account_id}/dbs/${azurerm_cosmosdb_sql_database.db.name}"
+  principal_id = azurerm_user_assigned_identity.uami_caj_workerly_burndown.principal_id
+}

@@ -15,6 +15,7 @@ locals {
   cae_name                       = "cae-cvs-idx${var.postfix}"
   ca_name_for_keycloak           = "ca-cvs-idx-keycloak${var.postfix}"
   ca_name_for_workerly_web       = "ca-cvs-idx-workerly-web${var.postfix}"
+  caj_name_for_workerly_burndown = "caj-cvs-idx-workerly-burndown${var.postfix}"
   acr_name                       = "acrcvsidx${replace(var.postfix, "-", "")}"
   sql_server_name                = "sql-cvs-idx${var.postfix}"
   sql_database_name_for_keycloak = "sqldb-cvs-idx-keycloak${var.postfix}"
@@ -50,14 +51,15 @@ module "proj_identityserver" {
 }
 
 module "proj_workerly" {
-  source                   = "./modules/proj_workerly"
-  rg_name                  = data.azurerm_resource_group.rg.name
-  location                 = data.azurerm_resource_group.rg.location
-  configs_container_scope  = local.configs_container_scope
-  cosmos_account_id        = module.shared.cosmos_account_id
-  cosmos_account_name      = module.shared.cosmos_account_name
-  acr_id                   = module.shared.acr_id
-  acr_login_server         = module.shared.acr_login_server
-  cae_id                   = module.shared.cae_id
-  ca_name_for_workerly_web = local.ca_name_for_workerly_web
+  source                         = "./modules/proj_workerly"
+  rg_name                        = data.azurerm_resource_group.rg.name
+  location                       = data.azurerm_resource_group.rg.location
+  configs_container_scope        = local.configs_container_scope
+  cosmos_account_id              = module.shared.cosmos_account_id
+  cosmos_account_name            = module.shared.cosmos_account_name
+  acr_id                         = module.shared.acr_id
+  acr_login_server               = module.shared.acr_login_server
+  cae_id                         = module.shared.cae_id
+  ca_name_for_workerly_web       = local.ca_name_for_workerly_web
+  caj_name_for_workerly_burndown = local.caj_name_for_workerly_burndown
 }

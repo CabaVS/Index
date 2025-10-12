@@ -33,3 +33,7 @@ variable "cae_id" {
 variable "ca_name_for_workerly_web" {
   type = string
 }
+
+variable "caj_name_for_workerly_burndown" {
+  type = string
+}
